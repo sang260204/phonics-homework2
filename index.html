@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>파닉스 키즈 플레이랜드 🎈</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React 18 & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Google Fonts: Jua & Nunito -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      font-family: 'Jua', 'Nunito', sans-serif;
+      touch-action: manipulation;
+    }
+    body {
+      background-color: #FFF0F5;
+      background-image: radial-gradient(#FFB6C1 2.5px, transparent 2.5px);
+      background-size: 28px 28px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .bubbly-card {
+      box-shadow: 0 12px 0px 0px rgba(255, 182, 193, 0.7), 0 16px 32px rgba(0,0,0,0.08);
+    }
+    .bubbly-btn {
+      box-shadow: 0 6px 0px 0px rgba(0, 0, 0, 0.12);
+      transition: all 0.1s ease-in-out;
+    }
+    .bubbly-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0px 0px rgba(0, 0, 0, 0.12);
+    }
+    .bounce-gentle {
+      animation: bounceGentle 2s infinite ease-in-out;
+    }
+    @keyframes bounceGentle {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-10px) scale(1.04); }
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #FCE7F3;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #F472B6;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-700 pb-16">
+  <div id="root">
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 20px; font-weight: bold; color: #db2777;">
+      🎈 파닉스 플레이랜드를 불러오는 중입니다...
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    window.firebaseModules = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, doc, getDoc, setDoc, onSnapshot };
+    window.firebaseLoaded = true;
+    window.dispatchEvent(new Event('firebase-ready'));
+  </script>
+
+  <script type="text/babel">
+    const UNITS_DATA = [
+      {
+        id: 1,
+        title: "Unit 1: L-Blends",
+        mascot: "🎈",
+        color: "from-pink-400 to-rose-400",
+        targets: ["bl", "cl", "fl", "gl", "pl", "sl"],
+        words: [
+          { id: "u1_1", word: "black", blend: "bl", rest: "ack", kor: "검은색", emoji: "⬛" },
+          { id: "u1_3", word: "clock", blend: "cl", rest: "ock", kor: "시계", emoji: "⏰" },
+          { id: "u1_4", word: "cloud", blend: "cl", rest: "oud", kor: "구름", emoji: "☁️" },
+          { id: "u1_5", word: "flag", blend: "fl", rest: "ag", kor: "깃발", emoji: "🚩" },
+          { id: "u1_6", word: "fly", blend: "fl", rest: "y", kor: "날다", emoji: "🪰" },
+          { id: "u1_7", word: "glass", blend: "gl", rest: "ass", kor: "유리컵", emoji: "🍷" },
+          { id: "u1_8", word: "glove", blend: "gl", rest: "ove", kor: "장갑", emoji: "🧤" },
+          { id: "u1_9", word: "plum", blend: "pl", rest: "um", kor: "자두", emoji: "🫐" },
+          { id: "u1_11", word: "slide", blend: "sl", rest: "ide", kor: "미끄럼틀", emoji: "🛝" }
+        ]
+      },
+      {
+        id: 2,
+        title: "Unit 2: R-Blends",
+        mascot: "🐸",
+        color: "from-amber-400 to-orange-400",
+        targets: ["br", "cr", "dr", "fr", "gr", "tr"],
+        words: [
+          { id: "u2_1", word: "brush", blend: "br", rest: "ush", kor: "솔/붓", emoji: "🖌️" },
+          { id: "u2_2", word: "crab", blend: "cr", rest: "ab", kor: "게", emoji: "🦀" },
+          { id: "u2_3", word: "crown", blend: "cr", rest: "own", kor: "왕관", emoji: "👑" },
+          { id: "u2_4", word: "drum", blend: "dr", rest: "um", kor: "드럼", emoji: "🥁" },
+          { id: "u2_5", word: "dress", blend: "dr", rest: "ess", kor: "드레스", emoji: "👗" },
+          { id: "u2_6", word: "frog", blend: "fr", rest: "og", kor: "개구리", emoji: "🐸" },
+          { id: "u2_7", word: "frame", blend: "fr", rest: "ame", kor: "액자", emoji: "🖼️" },
+          { id: "u2_8", word: "grape", blend: "gr", rest: "ape", kor: "포도", emoji: "🍇" },
+          { id: "u2_9", word: "grass", blend: "gr", rest: "ass", kor: "잔디", emoji: "🌿" }
+        ]
+      },
+      {
+        id: 3,
+        title: "Unit 3: S-Blends",
+        mascot: "⭐",
+        color: "from-purple-400 to-indigo-400",
+        targets: ["sk", "sm", "sn", "st", "sw", "sp"],
+        words: [
+          { id: "u3_1", word: "skate", blend: "sk", rest: "ate", kor: "스케이트", emoji: "⛸️" },
+          { id: "u3_2", word: "skirt", blend: "sk", rest: "irt", kor: "치마", emoji: "👗" },
+          { id: "u3_3", word: "smile", blend: "sm", rest: "ile", kor: "미소", emoji: "😊" },
+          { id: "u3_4", word: "smoke", blend: "sm", rest: "oke", kor: "연기", emoji: "🌫️" },
+          { id: "u3_5", word: "snake", blend: "sn", rest: "ake", kor: "뱀", emoji: "🐍" },
+          { id: "u3_6", word: "snow", blend: "sn", rest: "ow", kor: "눈", emoji: "❄️" },
+          { id: "u3_7", word: "spoon", blend: "sp", rest: "oon", kor: "숟가락", emoji: "🥄" },
+          { id: "u3_8", word: "spider", blend: "sp", rest: "ider", kor: "거미", emoji: "🕷️" },
+          { id: "u3_9", word: "star", blend: "st", rest: "ar", kor: "별", emoji: "⭐" },
+          { id: "u3_10", word: "swim", blend: "sw", rest: "im", kor: "수영하다", emoji: "🏊" }
+        ]
+      },
+      {
+        id: 4,
+        title: "Unit 4: Digraphs",
+        mascot: "🚢",
+        color: "from-sky-400 to-blue-500",
+        targets: ["sh", "ch", "wh", "th", "ck", "ng"],
+        words: [
+          { id: "u4_1", word: "ship", blend: "sh", rest: "ip", kor: "배", emoji: "🚢" },
+          { id: "u4_2", word: "fish", blend: "sh", rest: "fi", isSuffix: true, kor: "물고기", emoji: "🐟" },
+          { id: "u4_3", word: "duck", blend: "ck", rest: "du", isSuffix: true, kor: "오리", emoji: "🦆" },
+          { id: "u4_4", word: "ring", blend: "ng", rest: "ri", isSuffix: true, kor: "반지", emoji: "💍" },
+          { id: "u4_5", word: "sing", blend: "ng", rest: "si", isSuffix: true, kor: "노래하다", emoji: "🎤" },
+          { id: "u4_6", word: "king", blend: "ng", rest: "ki", isSuffix: true, kor: "왕", emoji: "👑" },
+          { id: "u4_7", word: "bench", blend: "ch", rest: "ben", isSuffix: true, kor: "벤치", emoji: "🪑" },
+          { id: "u4_8", word: "beach", blend: "ch", rest: "bea", isSuffix: true, kor: "해변", emoji: "🏖️" },
+          { id: "u4_9", word: "thin", blend: "th", rest: "in", kor: "얇은/마른", emoji: "🧍" }
+        ]
+      }
+    ];
+
+    const PHONICS_SOUND_MAP = {
+      "bl": "블르", "cl": "클르", "fl": "플르", "gl": "글르", "pl": "플르", "sl": "슬르",
+      "br": "브르", "cr": "크르", "fr": "프르", "dr": "드르", "gr": "그르", "tr": "트르",
+      "sk": "스크", "sm": "스므", "sn": "스느", "st": "스트", "sw": "스워", "sp": "스프",
+      "sh": "쉬",   "ch": "치",   "wh": "워",   "th": "쓰",   "ph": "프",   "ck": "크", "ng": "응"
+    };
+
+    let cachedEnVoice = null;
+    let cachedKorVoice = null;
+
+    const getVoice = (lang) => {
+      if (!('speechSynthesis' in window)) return null;
+      const voices = window.speechSynthesis.getVoices();
+      if (lang === 'ko') {
+        if (cachedKorVoice) return cachedKorVoice;
+        cachedKorVoice = voices.find(v => v.lang.startsWith('ko')) || null;
+        return cachedKorVoice;
+      } else {
+        if (cachedEnVoice) return cachedEnVoice;
+        cachedEnVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en')) || voices[0];
+        return cachedEnVoice;
+      }
+    };
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        cachedEnVoice = null;
+        cachedKorVoice = null;
+      };
+    }
+
+    const speechQueue = [];
+    let isSpeaking = false;
+
+    const processQueue = () => {
+      if (isSpeaking || speechQueue.length === 0) return;
+      if (!('speechSynthesis' in window)) return;
+
+      const item = speechQueue.shift();
+      isSpeaking = true;
+
+      const lowerText = item.text.toLowerCase().trim();
+      const phoneticSound = PHONICS_SOUND_MAP[lowerText];
+
+      const utterance = new SpeechSynthesisUtterance();
+
+      if (phoneticSound && item.useKoreanPhonics !== false) {
+        utterance.text = phoneticSound;
+        utterance.lang = 'ko-KR';
+        const korVoice = getVoice('ko');
+        if (korVoice) utterance.voice = korVoice;
+        utterance.rate = 0.8;
+        utterance.pitch = 1.15;
+      } else {
+        utterance.text = item.text;
+        utterance.lang = 'en-US';
+        const enVoice = getVoice('en');
+        if (enVoice) utterance.voice = enVoice;
+        utterance.rate = item.rate || 0.85;
+        utterance.pitch = 1.05;
+      }
+
+      utterance.onend = () => {
+        isSpeaking = false;
+        setTimeout(processQueue, 150);
+      };
+
+      utterance.onerror = () => {
+        isSpeaking = false;
+        setTimeout(processQueue, 100);
+      };
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    };
+
+    const speakText = (text, rate = 0.85) => {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      speechQueue.length = 0;
+      isSpeaking = false;
+      speechQueue.push({ text, rate });
+      processQueue();
+    };
+
+    const speakSequence = (items) => {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      speechQueue.length = 0;
+      isSpeaking = false;
+      items.forEach(item => {
+        if (typeof item === 'string') {
+          speechQueue.push({ text: item, rate: 0.85 });
+        } else {
+          speechQueue.push(item);
+        }
+      });
+      processQueue();
+    };
+
+    const triggerConfetti = () => {
+      if (window.confetti) {
+        window.confetti({ particleCount: 50, spread: 70, origin: { y: 0.65 } });
+      }
+    };
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-phonics-app';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+    function App() {
+      const [user, setUser] = React.useState(null);
+      const [inputNameVal, setInputNameVal] = React.useState("");
+      const [studentName, setStudentName] = React.useState("");
+      const [grade, setGrade] = React.useState("유치부");
+      const [totalScore, setTotalScore] = React.useState(0);
+      const [isSynced, setIsSynced] = React.useState(false);
+      
+      const [sheetWebhookUrl, setSheetWebhookUrl] = React.useState(() => {
+        return localStorage.getItem('phnics_sheet_webhook') || "";
+      });
+      const [showSettings, setShowSettings] = React.useState(false);
+      const [syncStatusMsg, setSyncStatusMsg] = React.useState("");
+
+      const [activeUnitId, setActiveUnitId] = React.useState(1);
+      const [activeMode, setActiveMode] = React.useState('listen');
+
+      const currentUnit = UNITS_DATA.find(u => u.id === activeUnitId) || UNITS_DATA[0];
+
+      React.useEffect(() => {
+        const handleFirebaseReady = async () => {
+          if (!window.firebaseLoaded || !firebaseConfig) return;
+          try {
+            const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, doc, getDoc } = window.firebaseModules;
+            const app = window.firebaseModules.initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+              await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+              await signInAnonymously(auth);
+            }
+
+            onAuthStateChanged(auth, async (u) => {
+              if (u) {
+                setUser(u);
+                const userDocRef = doc(db, 'artifacts', appId, 'users', u.uid, 'profile', 'data');
+                const docSnap = await getDoc(userDocRef);
+                if (docSnap.exists()) {
+                  const data = docSnap.data();
+                  if (data.studentName) {
+                    setStudentName(data.studentName);
+                    setInputNameVal(data.studentName);
+                  }
+                  if (data.grade) setGrade(data.grade);
+                  if (typeof data.totalScore === 'number') setTotalScore(data.totalScore);
+                  setIsSynced(true);
+                }
+              }
+            });
+          } catch (err) {
+            console.error("Firebase init note:", err);
+          }
+        };
+
+        if (window.firebaseLoaded) {
+          handleFirebaseReady();
+        } else {
+          window.addEventListener('firebase-ready', handleFirebaseReady);
+          return () => window.removeEventListener('firebase-ready', handleFirebaseReady);
+        }
+      }, []);
+
+      const sendDataToGoogleSheet = async (currentScore, activityName = "General") => {
+        if (!sheetWebhookUrl.trim()) return;
+        try {
+          const payload = {
+            studentName: studentName,
+            grade: grade,
+            score: currentScore,
+            activity: activityName,
+            timestamp: new Date().toLocaleString()
+          };
+          
+          await fetch(sheetWebhookUrl.trim(), {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          setSyncStatusMsg("📊 구글시트 전송 완료!");
+          setTimeout(() => setSyncStatusMsg(""), 3000);
+        } catch (e) {
+          console.error("Sheet sync error:", e);
+          setSyncStatusMsg("⚠️ 시트 전송 실패 (URL 확인)");
+          setTimeout(() => setSyncStatusMsg(""), 3000);
+        }
+      };
+
+      const handleLoginSubmit = async (e) => {
+        e.preventDefault();
+        const trimmedName = inputNameVal.trim();
+        if (!trimmedName) return;
+
+        setStudentName(trimmedName);
+
+        if (window.firebaseLoaded && firebaseConfig) {
+          try {
+            const { getAuth, getFirestore, doc, setDoc } = window.firebaseModules;
+            const auth = getAuth();
+            const db = getFirestore();
+            if (auth.currentUser) {
+              const userDocRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'profile', 'data');
+              await setDoc(userDocRef, {
+                studentName: trimmedName,
+                grade,
+                totalScore,
+                updatedAt: new Date().toISOString()
+              }, { merge: true });
+              setIsSynced(true);
+            }
+          } catch (err) {
+            console.error("Sync error:", err);
+          }
+        }
+
+        if (sheetWebhookUrl.trim()) {
+          sendDataToGoogleSheet(totalScore, "Login/Start");
+        }
+
+        speakText(`Welcome, ${trimmedName}! Let's study phonics!`);
+      };
+
+      const handleScoreGain = async (points, activityName = "Activity") => {
+        const updatedScore = totalScore + points;
+        setTotalScore(updatedScore);
+
+        if (window.firebaseLoaded && firebaseConfig) {
+          try {
+            const { getAuth, getFirestore, doc, setDoc } = window.firebaseModules;
+            const auth = getAuth();
+            const db = getFirestore();
+            if (auth.currentUser && studentName) {
+              const userDocRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'profile', 'data');
+              await setDoc(userDocRef, {
+                studentName,
+                grade,
+                totalScore: updatedScore,
+                updatedAt: new Date().toISOString()
+              }, { merge: true });
+            }
+          } catch (err) {
+            console.error("Failed to sync score:", err);
+          }
+        }
+
+        if (sheetWebhookUrl.trim()) {
+          sendDataToGoogleSheet(updatedScore, activityName);
+        }
+      };
+
+      const saveWebhookUrl = (e) => {
+        e.preventDefault();
+        localStorage.setItem('phnics_sheet_webhook', sheetWebhookUrl.trim());
+        setShowSettings(false);
+        setSyncStatusMsg("✅ 구글시트 연동 주소 저장됨!");
+        setTimeout(() => setSyncStatusMsg(""), 3000);
+      };
+
+      if (!studentName) {
+        return (
+          <div className="max-w-md mx-auto px-4 pt-8 text-center">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border-4 border-pink-300 bubbly-card">
+              <div className="text-7xl mb-3 bounce-gentle">🎈</div>
+              <h1 className="text-2xl font-black text-pink-500 mb-1">파닉스 키즈 플레이랜드</h1>
+              <p className="text-xs font-extrabold text-slate-400 mb-2">원어민 발음 & 구글시트 연동 가능!</p>
+              
+              <div className="flex justify-center gap-2 mb-4">
+                <div className="inline-block bg-emerald-100 text-emerald-700 font-bold text-[11px] px-3 py-1 rounded-full">
+                  ✨ 클라우드 저장 활성화됨
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="bg-purple-100 text-purple-700 font-bold text-[11px] px-3 py-1 rounded-full hover:bg-purple-200"
+                >
+                  📊 구글시트 연동 설정 ⚙️
+                </button>
+              </div>
+
+              {showSettings && (
+                <form onSubmit={saveWebhookUrl} className="mb-6 bg-purple-50 p-4 rounded-2xl border-2 border-purple-200 text-left">
+                  <label className="text-[11px] font-bold text-purple-700 block mb-1">
+                    Google Apps Script 웹앱 URL 입력:
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    value={sheetWebhookUrl}
+                    onChange={(e) => setSheetWebhookUrl(e.target.value)}
+                    className="w-full p-2.5 text-xs rounded-xl border border-purple-300 bg-white font-mono mb-2 outline-none"
+                  />
+                  <div className="text-[10px] text-slate-500 mb-3 leading-tight">
+                    * 구글 스프레드시트의 <b>[확장 프로그램] &gt; [Apps Script]</b>에 웹앱 배포 코드를 넣고 얻은 URL을 붙여넣으세요!
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full bg-purple-600 text-white font-bold py-2 rounded-xl text-xs"
+                  >
+                    연동 주소 저장하기
+                  </button>
+                </form>
+              )}
+
+              <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 ml-1">학년 선택</label>
+                  <select
+                    value={grade}
+                    onChange={(e) => setGrade(e.target.value)}
+                    className="w-full mt-1 p-3.5 rounded-2xl border-2 border-pink-200 bg-pink-50/50 font-bold text-slate-700 outline-none focus:border-pink-400"
+                  >
+                    <option value="유치부">유치부 🧸</option>
+                    <option value="초등 1학년">초등 1학년 🎒</option>
+                    <option value="초등 2학년">초등 2학년 ✏️</option>
+                    <option value="초등 3학년 이상">초등 3학년 이상 🚀</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-500 ml-1">어린이 이름</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="예: 김민준 (한글/영문 전체 입력 후 버튼 클릭)"
+                    value={inputNameVal}
+                    onChange={(e) => setInputNameVal(e.target.value)}
+                    className="w-full mt-1 p-3.5 rounded-2xl border-2 border-pink-200 bg-pink-50/50 font-bold text-slate-700 outline-none focus:border-pink-400"
+                  />
+                  <div className="text-[10px] text-pink-500 mt-1 ml-1 font-bold">
+                    * 한글 조합 중(받침/자음 입력 중) 바로 시작되지 않도록 이름을 완전히 적은 후 아래 버튼을 눌러주세요!
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-pink-400 to-rose-500 text-white font-extrabold text-lg py-4 rounded-2xl bubbly-btn mt-2 hover:opacity-95"
+                >
+                  🚀 모험 시작하기!
+                </button>
+              </form>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="max-w-md mx-auto px-3 pt-3">
+          <header className="bg-white rounded-2xl p-3 mb-3 border-2 border-pink-200 flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-xl">🎈</div>
+              <div>
+                <div className="text-[11px] font-bold text-pink-500 flex items-center gap-1">
+                  <span>{grade}</span>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">🟢 연동됨</span>
+                  {sheetWebhookUrl && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">📊 시트연동</span>}
+                </div>
+                <div className="text-base font-black text-slate-800 leading-none">{studentName}</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <div className="bg-amber-100 border border-amber-300 rounded-xl px-2.5 py-1 flex items-center gap-1 shadow-xs">
+                <span className="text-base">⭐</span>
+                <span className="font-black text-amber-700 text-sm">{totalScore}점</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSettings(!showSettings)}
+                className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-black shadow-sm flex items-center gap-1 bubbly-btn hover:opacity-95 animate-pulse"
+                title="구글시트 설정"
+              >
+                <span>⚙️</span>
+                <span>설정</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStudentName("")}
+                className="p-2 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 text-xs font-bold"
+                title="로그아웃/이름변경"
+              >
+                👤
+              </button>
+            </div>
+          </header>
+
+          {syncStatusMsg && (
+            <div className="bg-emerald-500 text-white text-xs font-bold py-2 px-3 rounded-xl mb-3 text-center shadow-sm animate-pulse">
+              {syncStatusMsg}
+            </div>
+          )}
+
+          {showSettings && (
+            <div className="bg-purple-50 p-4 rounded-2xl border-2 border-purple-200 mb-3 text-left">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-black text-purple-700">📊 구글시트 연동 (Google Apps Script)</span>
+                <button type="button" onClick={() => setShowSettings(false)} className="text-xs font-bold text-purple-400">✕ 닫기</button>
+              </div>
+              <form onSubmit={saveWebhookUrl}>
+                <input
+                  type="url"
+                  placeholder="https://script.google.com/macros/s/.../exec"
+                  value={sheetWebhookUrl}
+                  onChange={(e) => setSheetWebhookUrl(e.target.value)}
+                  className="w-full p-2.5 text-xs rounded-xl border border-purple-300 bg-white font-mono mb-2 outline-none"
+                />
+                <div className="text-[10px] text-slate-600 mb-2 leading-tight">
+                  <b>연동 가이드:</b> 구글 스프레드시트 ➔ 확장 프로그램 ➔ Apps Script 선택 후 아래 코드를 붙여넣고 [배포] ➔ [새 배포] (웹 앱, 모든 사용자 허용)한 뒤 웹 앱 URL을 위에 넣으세요!
+                </div>
+                <div className="bg-slate-900 text-slate-200 p-2 rounded-xl text-[9px] font-mono mb-2 overflow-x-auto whitespace-pre">
+{`function doPost(e) {
+  var data = JSON.parse(e.postData.contents);
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  sheet.appendRow([data.timestamp, data.studentName, data.grade, data.score, data.activity]);
+  return ContentService.createTextOutput("Success");
+}`}
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-purple-600 text-white font-bold py-2 rounded-xl text-xs"
+                >
+                  연동 주소 저장하기
+                </button>
+              </form>
+            </div>
+          )}
+
+          <div className="grid grid-cols-4 gap-1.5 mb-3">
+            {UNITS_DATA.map(u => {
+              const isActive = u.id === activeUnitId;
+              return (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveUnitId(u.id);
+                    speakText(u.title);
+                  }}
+                  className={`py-2 px-1 rounded-2xl font-black text-xs border-2 text-center transition-all ${
+                    isActive
+                      ? 'bg-pink-500 border-pink-600 text-white shadow-sm scale-102'
+                      : 'bg-white border-pink-100 text-slate-600 hover:bg-pink-50'
+                  }`}
+                >
+                  <div className="text-sm">{u.mascot}</div>
+                  <div>U{u.id}</div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-5 gap-1 mb-3 bg-white p-1.5 rounded-2xl border-2 border-pink-100 shadow-xs">
+            <ModeTab id="listen" label="듣기" icon="🎧" active={activeMode} setMode={setActiveMode} />
+            <ModeTab id="blend" label="조합" icon="🧩" active={activeMode} setMode={setActiveMode} />
+            <ModeTab id="match" label="짝맞추기" icon="🃏" active={activeMode} setMode={setActiveMode} />
+            <ModeTab id="spelling" label="스펠링" icon="✏️" active={activeMode} setMode={setActiveMode} />
+            <ModeTab id="missing" label="빈칸" icon="🔍" active={activeMode} setMode={setActiveMode} />
+          </div>
+
+          <main className="bg-white rounded-3xl p-4 border-2 border-pink-200 bubbly-card min-h-[440px]">
+            {activeMode === 'listen' && <ListenRepeatMode unit={currentUnit} onScore={(pts) => handleScoreGain(pts, '듣기 학습')} />}
+            {activeMode === 'blend' && <BlendMode unit={currentUnit} onScore={(pts) => handleScoreGain(pts, '단어 조합')} />}
+            {activeMode === 'match' && <CardMatchMode unit={currentUnit} onScore={(pts) => handleScoreGain(pts, '짝맞추기 게임')} />}
+            {activeMode === 'spelling' && <SpellingQuizMode unit={currentUnit} onScore={(pts) => handleScoreGain(pts, '스펠링 퀴즈')} />}
+            {activeMode === 'missing' && <MissingLetterMode unit={currentUnit} onScore={(pts) => handleScoreGain(pts, '빈칸 채우기')} />}
+          </main>
+        </div>
+      );
+    }
+
+    function ModeTab({ id, label, icon, active, setMode }) {
+      const isSelected = active === id;
+      return (
+        <button
+          type="button"
+          onClick={() => setMode(id)}
+          className={`py-2 rounded-xl font-extrabold text-[11px] flex flex-col items-center gap-0.5 transition-all ${
+            isSelected
+              ? 'bg-gradient-to-b from-pink-400 to-rose-400 text-white shadow-xs'
+              : 'text-slate-500 hover:bg-pink-50'
+          }`}
+        >
+          <span className="text-base">{icon}</span>
+          <span>{label}</span>
+        </button>
+      );
+    }
+
+    function ListenRepeatMode({ unit, onScore }) {
+      const [selectedWord, setSelectedWord] = React.useState(unit.words[0]);
+
+      React.useEffect(() => {
+        setSelectedWord(unit.words[0]);
+      }, [unit]);
+
+      return (
+        <div className="text-center">
+          <div className="text-xs font-extrabold text-pink-500 mb-2">{unit.title} • 그림 카드를 누르고 소리를 들어보세요!</div>
+
+          <div
+            onClick={() => {
+              speakText(selectedWord.word);
+              onScore(1);
+            }}
+            className="bg-gradient-to-b from-amber-50 to-pink-50 rounded-2xl p-5 border-2 border-pink-200 mb-4 cursor-pointer bubbly-btn active:scale-98"
+          >
+            <div className="text-6xl my-2 bounce-gentle">{selectedWord.emoji}</div>
+            <div className="text-3xl font-black text-slate-800 tracking-wide">
+              {selectedWord.word}
+            </div>
+            <div className="text-sm font-bold text-slate-400 mt-1">"{selectedWord.kor}"</div>
+            <div className="inline-flex items-center gap-1 bg-pink-400 text-white text-xs font-extrabold px-3 py-1 rounded-full mt-3 shadow-xs">
+              🔊 원어민 소리 듣기 (+1점)
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {unit.words.map(w => {
+              const isSelected = selectedWord?.id === w.id;
+              return (
+                <button
+                  key={w.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedWord(w);
+                    speakText(w.word);
+                    onScore(1);
+                  }}
+                  className={`p-2.5 rounded-2xl border-2 text-center transition-all ${
+                    isSelected
+                      ? 'bg-amber-100 border-amber-400 scale-102 shadow-xs'
+                      : 'bg-white border-slate-100 hover:border-pink-200'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">{w.emoji}</div>
+                  <div className="font-extrabold text-xs text-slate-700">{w.word}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    function BlendMode({ unit, onScore }) {
+      const [selectedTarget, setSelectedTarget] = React.useState('ALL');
+
+      React.useEffect(() => {
+        setSelectedTarget('ALL');
+      }, [unit]);
+
+      const filteredWords = selectedTarget === 'ALL'
+        ? unit.words
+        : unit.words.filter(w => w.blend === selectedTarget);
+
+      const handleCombine = (w) => {
+        speakSequence([
+          { text: w.blend, rate: 0.8 },
+          { text: w.word, rate: 0.85, useKoreanPhonics: false }
+        ]);
+        triggerConfetti();
+        onScore(5);
+      };
+
+      return (
+        <div>
+          <div className="text-xs font-bold text-center text-purple-600 mb-2">
+            소리 조각을 누르고 단어를 조합해보세요! (+5점)
+          </div>
+
+          <div className="flex flex-wrap gap-1 justify-center mb-3">
+            <button
+              type="button"
+              onClick={() => setSelectedTarget('ALL')}
+              className={`px-2.5 py-1 rounded-xl font-black text-xs border-2 ${
+                selectedTarget === 'ALL'
+                  ? 'bg-purple-600 border-purple-700 text-white'
+                  : 'bg-white border-purple-200 text-purple-600'
+              }`}
+            >
+              전체 보기 ({unit.words.length}) ⭐
+            </button>
+            {unit.targets.map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => {
+                  setSelectedTarget(t);
+                  speakText(t);
+                }}
+                className={`px-2.5 py-1 rounded-xl font-black text-xs border-2 ${
+                  selectedTarget === t
+                    ? 'bg-purple-500 border-purple-600 text-white'
+                    : 'bg-white border-purple-200 text-purple-600'
+                }`}
+              >
+                /{t}/
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1 pb-4">
+            {filteredWords.map(w => (
+              <div
+                key={w.id}
+                onClick={() => handleCombine(w)}
+                className="bg-purple-50/70 border-2 border-purple-200 p-2.5 rounded-2xl flex items-center justify-between cursor-pointer bubbly-btn hover:bg-purple-100 transition-all"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-3xl">{w.emoji}</span>
+                  <div>
+                    <div className="font-black text-base text-slate-800">
+                      {w.isSuffix
+                        ? `${w.rest} + ${w.blend}`
+                        : `${w.blend} + ${w.rest}`}
+                    </div>
+                    <div className="text-[11px] font-bold text-slate-400">{w.kor}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-purple-700 bg-purple-200/80 px-2.5 py-1 rounded-lg">
+                    {w.word}
+                  </span>
+                  <span className="bg-yellow-400 text-yellow-950 font-extrabold px-2.5 py-1 rounded-xl text-xs shadow-xs">
+                    합치기 ⚡
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function CardMatchMode({ unit, onScore }) {
+      const [cards, setCards] = React.useState([]);
+      const [flippedCards, setFlippedCards] = React.useState([]);
+      const [matchedCardIds, setMatchedCardIds] = React.useState([]);
+      const [isProcessing, setIsProcessing] = React.useState(false);
+
+      const startNewGame = () => {
+        const shuffledWords = [...unit.words].sort(() => 0.5 - Math.random()).slice(0, 4);
+        const cardDeck = [];
+
+        shuffledWords.forEach(w => {
+          cardDeck.push({ id: `${w.id}_blend`, pairId: w.id, type: 'blend', content: w.blend, soundText: w.blend, wordObj: w });
+          cardDeck.push({ id: `${w.id}_word`, pairId: w.id, type: 'word', content: w.word, soundText: w.word, emoji: w.emoji, wordObj: w });
+        });
+
+        setCards(cardDeck.sort(() => 0.5 - Math.random()));
+        setFlippedCards([]);
+        setMatchedCardIds([]);
+        setIsProcessing(false);
+      };
+
+      React.useEffect(() => { startNewGame(); }, [unit]);
+
+      const handleCardClick = (card) => {
+        if (isProcessing) return;
+        if (flippedCards.some(c => c.id === card.id)) return;
+        if (matchedCardIds.includes(card.pairId)) return;
+
+        speakText(card.soundText);
+
+        const newFlipped = [...flippedCards, card];
+        setFlippedCards(newFlipped);
+
+        if (newFlipped.length === 2) {
+          setIsProcessing(true);
+          const [card1, card2] = newFlipped;
+
+          if (card1.pairId === card2.pairId) {
+            setTimeout(() => {
+              setMatchedCardIds(prev => [...prev, card1.pairId]);
+              setFlippedCards([]);
+              setIsProcessing(false);
+              triggerConfetti();
+              onScore(10);
+            }, 600);
+          } else {
+            setTimeout(() => {
+              setFlippedCards([]);
+              setIsProcessing(false);
+            }, 1000);
+          }
+        }
+      };
+
+      const isFinished = cards.length > 0 && matchedCardIds.length === cards.length / 2;
+
+      return (
+        <div>
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-xs font-bold text-pink-500">같은 소리와 단어 짝을 찾으세요! (+10점)</span>
+            <button type="button" onClick={startNewGame} className="text-xs font-bold text-slate-400 underline">새로하기</button>
+          </div>
+
+          {isFinished ? (
+            <div className="text-center py-10">
+              <div className="text-6xl mb-2 bounce-gentle">🎉</div>
+              <div className="font-black text-xl text-slate-700 mb-1">짝맞추기 성공! 완벽해요!</div>
+              <p className="text-xs font-bold text-slate-400 mb-4">+10점 저장 완료!</p>
+              <button type="button" onClick={startNewGame} className="bg-pink-400 text-white font-black px-6 py-3 rounded-2xl bubbly-btn text-sm">
+                한 판 더 하기 🚀
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-2">
+              {cards.map(card => {
+                const isFlipped = flippedCards.some(c => c.id === card.id) || matchedCardIds.includes(card.pairId);
+                const isMatched = matchedCardIds.includes(card.pairId);
+
+                return (
+                  <div
+                    key={card.id}
+                    onClick={() => handleCardClick(card)}
+                    className={`h-24 rounded-2xl cursor-pointer flex flex-col items-center justify-center p-1 border-2 text-center transition-all ${
+                      isMatched
+                        ? 'opacity-30 border-transparent bg-slate-100'
+                        : isFlipped
+                          ? 'bg-pink-100 border-pink-300 text-pink-700 font-extrabold shadow-inner'
+                          : 'bg-gradient-to-br from-amber-300 to-orange-400 border-white text-white font-black text-xl shadow-md'
+                    }`}
+                  >
+                    {isFlipped ? (
+                      <>
+                        <div className="text-2xl">{card.type === 'word' ? card.emoji : '🔤'}</div>
+                        <div className="text-xs font-black mt-1">
+                          {card.content}
+                        </div>
+                      </>
+                    ) : (
+                      '⭐'
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function SpellingQuizMode({ unit, onScore }) {
+      const [currentIndex, setCurrentIndex] = React.useState(0);
+      const [userInput, setUserInput] = React.useState([]);
+      const [scrambled, setScrambled] = React.useState([]);
+      const [isCorrect, setIsCorrect] = React.useState(false);
+
+      const currentWordObj = unit.words[currentIndex];
+
+      React.useEffect(() => {
+        if (!currentWordObj) return;
+        setUserInput([]);
+        setIsCorrect(false);
+        const letters = currentWordObj.word.split('').sort(() => 0.5 - Math.random());
+        setScrambled(letters.map((char, i) => ({ id: `${char}_${i}`, char, used: false })));
+        speakText(currentWordObj.word);
+      }, [currentIndex, unit]);
+
+      const handleLetterClick = (item) => {
+        if (isCorrect || item.used) return;
+        setScrambled(prev => prev.map(l => l.id === item.id ? { ...l, used: true } : l));
+        const newInput = [...userInput, item];
+        setUserInput(newInput);
+        speakText(item.char, 1.1);
+
+        if (newInput.length === currentWordObj.word.length) {
+          if (newInput.map(i => i.char).join('') === currentWordObj.word) {
+            setIsCorrect(true);
+            speakText(`Great! ${currentWordObj.word}`);
+            triggerConfetti();
+            onScore(10);
+          } else {
+            setTimeout(() => {
+              setUserInput([]);
+              setScrambled(prev => prev.map(l => ({ ...l, used: false })));
+            }, 700);
+          }
+        }
+      };
+
+      return (
+        <div className="text-center">
+          <div className="text-xs font-bold text-emerald-600 mb-2">알파벳 블록을 순서대로 눌러 단어를 완성하세요 (+10점)</div>
+          <div className="text-6xl mb-1 bounce-gentle">{currentWordObj.emoji}</div>
+          <div className="text-xs font-bold text-slate-400 mb-4">"{currentWordObj.kor}"</div>
+
+          <div className="flex justify-center gap-1.5 mb-6">
+            {Array.from({ length: currentWordObj.word.length }).map((_, idx) => {
+              const item = userInput[idx];
+              return (
+                <div
+                  key={idx}
+                  className={`w-10 h-12 rounded-2xl border-2 font-black text-xl flex items-center justify-center ${
+                    item
+                      ? isCorrect
+                        ? 'bg-emerald-400 border-emerald-500 text-white shadow-xs'
+                        : 'bg-white border-emerald-300 text-slate-700'
+                      : 'bg-emerald-50 border-dashed border-emerald-200'
+                  }`}
+                >
+                  {item ? item.char : ''}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-center flex-wrap gap-2 mb-6">
+            {scrambled.map(item => (
+              <button
+                key={item.id}
+                type="button"
+                disabled={item.used || isCorrect}
+                onClick={() => handleLetterClick(item)}
+                className={`w-11 h-12 rounded-2xl font-black text-lg border-2 bubbly-btn ${
+                  item.used
+                    ? 'bg-slate-100 border-slate-200 text-slate-300'
+                    : 'bg-yellow-300 border-yellow-400 text-slate-800'
+                }`}
+              >
+                {item.char}
+              </button>
+            ))}
+          </div>
+
+          {isCorrect && (
+            <button
+              type="button"
+              onClick={() => setCurrentIndex(prev => (prev + 1) % unit.words.length)}
+              className="bg-emerald-400 text-white font-extrabold px-6 py-3 rounded-2xl bubbly-btn text-sm shadow-sm"
+            >
+              다음 문제 ➡️
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    function MissingLetterMode({ unit, onScore }) {
+      const [currentIndex, setCurrentIndex] = React.useState(0);
+      const [options, setOptions] = React.useState([]);
+      const [isCorrect, setIsCorrect] = React.useState(false);
+
+      const currentWordObj = unit.words[currentIndex];
+
+      React.useEffect(() => {
+        if (!currentWordObj) return;
+        setIsCorrect(false);
+        const correct = currentWordObj.blend;
+        const distractors = unit.targets.filter(t => t !== correct).sort(() => 0.5 - Math.random()).slice(0, 3);
+        setOptions([correct, ...distractors].sort(() => 0.5 - Math.random()));
+        speakText(currentWordObj.word);
+      }, [currentIndex, unit]);
+
+      const handleSelect = (opt) => {
+        if (isCorrect) return;
+        if (opt === currentWordObj.blend) {
+          setIsCorrect(true);
+          speakSequence([
+            { text: opt, rate: 0.8 },
+            { text: currentWordObj.word, rate: 0.85, useKoreanPhonics: false }
+          ]);
+          triggerConfetti();
+          onScore(10);
+        } else {
+          speakText(opt);
+        }
+      };
+
+      return (
+        <div className="text-center">
+          <div className="text-xs font-bold text-sky-600 mb-2">빈칸에 들어갈 알맞은 소리를 고르세요 (+10점)</div>
+          <div className="text-6xl mb-1 bounce-gentle">{currentWordObj.emoji}</div>
+          <div className="text-xs font-bold text-slate-400 mb-4">"{currentWordObj.kor}"</div>
+
+          <div className="text-3xl font-black mb-6 flex items-center justify-center gap-1.5">
+            {currentWordObj.isSuffix ? (
+              <>
+                <span>{currentWordObj.rest}</span>
+                <span className={`px-3 py-1 rounded-2xl border-2 inline-block ${
+                  isCorrect ? 'bg-sky-400 border-sky-500 text-white shadow-xs' : 'bg-sky-50 border-dashed border-sky-300 text-sky-400'
+                }`}>
+                  {isCorrect ? currentWordObj.blend : '___'}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className={`px-3 py-1 rounded-2xl border-2 inline-block ${
+                  isCorrect ? 'bg-sky-400 border-sky-500 text-white shadow-xs' : 'bg-sky-50 border-dashed border-sky-300 text-sky-400'
+                }`}>
+                  {isCorrect ? currentWordObj.blend : '___'}
+                </span>
+                <span>{currentWordObj.rest}</span>
+              </>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 mb-6">
+            {options.map((opt, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => handleSelect(opt)}
+                className={`py-4 rounded-2xl font-black text-2xl border-2 bubbly-btn transition-all ${
+                  isCorrect && opt === currentWordObj.blend
+                    ? 'bg-emerald-400 border-emerald-500 text-white shadow-xs'
+                    : 'bg-white border-sky-200 text-sky-600 hover:bg-sky-50'
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+
+          {isCorrect && (
+            <button
+              type="button"
+              onClick={() => setCurrentIndex(prev => (prev + 1) % unit.words.length)}
+              className="sky-400 bg-sky-400 text-white font-extrabold px-6 py-3 rounded-2xl bubbly-btn text-sm shadow-sm"
+            >
+              다음 문제 ➡️
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    try {
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    } catch (err) {
+      document.getElementById('root').innerHTML = `<div style="padding: 20px; color: red; font-weight: bold; text-align: center;">로드 중 오류가 발생했습니다: ${err.message}</div>`;
+    }
+  </script>
+</body>
+</html>
