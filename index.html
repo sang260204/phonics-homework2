@@ -277,8 +277,11 @@
       const [totalScore, setTotalScore] = React.useState(0);
       const [isSynced, setIsSynced] = React.useState(false);
       
+      // 선생님의 구글시트 웹앱 URL을 기본값으로 자동 내장 (모바일 접속 시에도 설정 불필요!)
+      const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzGrP66w3iajVzebdvDWNTefAsJi5edrdEdDx3QeYSaGRIr55t5yiTXJV23YdBZzTP-/exec";
+      
       const [sheetWebhookUrl, setSheetWebhookUrl] = React.useState(() => {
-        return localStorage.getItem('phnics_sheet_webhook') || "";
+        return localStorage.getItem('phnics_sheet_webhook') || DEFAULT_WEBHOOK_URL;
       });
       const [showSettings, setShowSettings] = React.useState(false);
       const [syncStatusMsg, setSyncStatusMsg] = React.useState("");
@@ -334,7 +337,8 @@
       }, []);
 
       const sendDataToGoogleSheet = async (currentScore, activityName = "General") => {
-        if (!sheetWebhookUrl.trim()) return;
+        const activeUrl = sheetWebhookUrl.trim() || DEFAULT_WEBHOOK_URL;
+        if (!activeUrl) return;
         try {
           const payload = {
             studentName: studentName,
@@ -344,7 +348,7 @@
             timestamp: new Date().toLocaleString()
           };
           
-          await fetch(sheetWebhookUrl.trim(), {
+          await fetch(activeUrl, {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
@@ -386,10 +390,7 @@
           }
         }
 
-        if (sheetWebhookUrl.trim()) {
-          sendDataToGoogleSheet(totalScore, "Login/Start");
-        }
-
+        sendDataToGoogleSheet(totalScore, "Login/Start");
         speakText(`Welcome, ${trimmedName}! Let's study phonics!`);
       };
 
@@ -416,9 +417,7 @@
           }
         }
 
-        if (sheetWebhookUrl.trim()) {
-          sendDataToGoogleSheet(updatedScore, activityName);
-        }
+        sendDataToGoogleSheet(updatedScore, activityName);
       };
 
       const saveWebhookUrl = (e) => {
@@ -435,41 +434,40 @@
             <div className="bg-white rounded-3xl p-6 sm:p-8 border-4 border-pink-300 bubbly-card">
               <div className="text-7xl mb-3 bounce-gentle">🎈</div>
               <h1 className="text-2xl font-black text-pink-500 mb-1">파닉스 키즈 플레이랜드</h1>
-              <p className="text-xs font-extrabold text-slate-400 mb-2">원어민 발음 & 구글시트 연동 가능!</p>
+              <p className="text-xs font-extrabold text-slate-400 mb-2">원어민 발음 & 구글시트 자동 연동 완료!</p>
               
               <div className="flex justify-center gap-2 mb-4">
                 <div className="inline-block bg-emerald-100 text-emerald-700 font-bold text-[11px] px-3 py-1 rounded-full">
-                  ✨ 클라우드 저장 활성화됨
+                  ✨ 구글시트 자동 연동됨
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowSettings(!showSettings)}
                   className="bg-purple-100 text-purple-700 font-bold text-[11px] px-3 py-1 rounded-full hover:bg-purple-200"
                 >
-                  📊 구글시트 연동 설정 ⚙️
+                  ⚙️ 설정 보기
                 </button>
               </div>
 
               {showSettings && (
                 <form onSubmit={saveWebhookUrl} className="mb-6 bg-purple-50 p-4 rounded-2xl border-2 border-purple-200 text-left">
                   <label className="text-[11px] font-bold text-purple-700 block mb-1">
-                    Google Apps Script 웹앱 URL 입력:
+                    Google Apps Script 웹앱 URL:
                   </label>
                   <input
                     type="url"
-                    placeholder="https://script.google.com/macros/s/.../exec"
                     value={sheetWebhookUrl}
                     onChange={(e) => setSheetWebhookUrl(e.target.value)}
                     className="w-full p-2.5 text-xs rounded-xl border border-purple-300 bg-white font-mono mb-2 outline-none"
                   />
                   <div className="text-[10px] text-slate-500 mb-3 leading-tight">
-                    * 구글 스프레드시트의 <b>[확장 프로그램] &gt; [Apps Script]</b>에 웹앱 배포 코드를 넣고 얻은 URL을 붙여넣으세요!
+                    * 주소가 이미 자동으로 입력되어 있으므로 수정하실 필요가 없습니다!
                   </div>
                   <button
                     type="submit"
                     className="w-full bg-purple-600 text-white font-bold py-2 rounded-xl text-xs"
                   >
-                    연동 주소 저장하기
+                    확인
                   </button>
                 </form>
               )}
@@ -500,7 +498,7 @@
                     className="w-full mt-1 p-3.5 rounded-2xl border-2 border-pink-200 bg-pink-50/50 font-bold text-slate-700 outline-none focus:border-pink-400"
                   />
                   <div className="text-[10px] text-pink-500 mt-1 ml-1 font-bold">
-                    * 한글 조합 중(받침/자음 입력 중) 바로 시작되지 않도록 이름을 완전히 적은 후 아래 버튼을 눌러주세요!
+                    * 이름을 완전히 적은 후 아래 버튼을 눌러주세요!
                   </div>
                 </div>
 
@@ -524,8 +522,7 @@
               <div>
                 <div className="text-[11px] font-bold text-pink-500 flex items-center gap-1">
                   <span>{grade}</span>
-                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">🟢 연동됨</span>
-                  {sheetWebhookUrl && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">📊 시트연동</span>}
+                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">🟢 자동연동</span>
                 </div>
                 <div className="text-base font-black text-slate-800 leading-none">{studentName}</div>
               </div>
@@ -536,15 +533,6 @@
                 <span className="text-base">⭐</span>
                 <span className="font-black text-amber-700 text-sm">{totalScore}점</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowSettings(!showSettings)}
-                className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-black shadow-sm flex items-center gap-1 bubbly-btn hover:opacity-95 animate-pulse"
-                title="구글시트 설정"
-              >
-                <span>⚙️</span>
-                <span>설정</span>
-              </button>
               <button
                 type="button"
                 onClick={() => setStudentName("")}
@@ -559,41 +547,6 @@
           {syncStatusMsg && (
             <div className="bg-emerald-500 text-white text-xs font-bold py-2 px-3 rounded-xl mb-3 text-center shadow-sm animate-pulse">
               {syncStatusMsg}
-            </div>
-          )}
-
-          {showSettings && (
-            <div className="bg-purple-50 p-4 rounded-2xl border-2 border-purple-200 mb-3 text-left">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-black text-purple-700">📊 구글시트 연동 (Google Apps Script)</span>
-                <button type="button" onClick={() => setShowSettings(false)} className="text-xs font-bold text-purple-400">✕ 닫기</button>
-              </div>
-              <form onSubmit={saveWebhookUrl}>
-                <input
-                  type="url"
-                  placeholder="https://script.google.com/macros/s/.../exec"
-                  value={sheetWebhookUrl}
-                  onChange={(e) => setSheetWebhookUrl(e.target.value)}
-                  className="w-full p-2.5 text-xs rounded-xl border border-purple-300 bg-white font-mono mb-2 outline-none"
-                />
-                <div className="text-[10px] text-slate-600 mb-2 leading-tight">
-                  <b>연동 가이드:</b> 구글 스프레드시트 ➔ 확장 프로그램 ➔ Apps Script 선택 후 아래 코드를 붙여넣고 [배포] ➔ [새 배포] (웹 앱, 모든 사용자 허용)한 뒤 웹 앱 URL을 위에 넣으세요!
-                </div>
-                <div className="bg-slate-900 text-slate-200 p-2 rounded-xl text-[9px] font-mono mb-2 overflow-x-auto whitespace-pre">
-{`function doPost(e) {
-  var data = JSON.parse(e.postData.contents);
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  sheet.appendRow([data.timestamp, data.studentName, data.grade, data.score, data.activity]);
-  return ContentService.createTextOutput("Success");
-}`}
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-purple-600 text-white font-bold py-2 rounded-xl text-xs"
-                >
-                  연동 주소 저장하기
-                </button>
-              </form>
             </div>
           )}
 
