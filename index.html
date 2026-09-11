@@ -226,7 +226,6 @@
     const speechQueue = [];
     let isSpeaking = false;
 
-    // 모바일 브라우저 오디오 강제 활성화 함수 (핵심 수정)
     const unlockMobileAudio = () => {
       if (!('speechSynthesis' in window)) return;
       try {
@@ -235,7 +234,7 @@
         utterance.volume = 0.01;
         window.speechSynthesis.speak(utterance);
       } catch (e) {
-        console.error("Audio unlock note:", e);
+        console.error("Audio unlock error:", e);
       }
     };
 
@@ -279,11 +278,20 @@
 
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
+
+      // 모바일 브라우저 음성 재생 끊김 방지
+      if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        setTimeout(() => {
+          if (window.speechSynthesis && window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          }
+        }, 100);
+      }
     };
 
     const speakText = (text, rate = 0.85) => {
       if (!('speechSynthesis' in window)) return;
-      unlockMobileAudio(); // 소리 재생 전 모바일 오디오 깨우기
+      unlockMobileAudio();
       window.speechSynthesis.cancel();
       speechQueue.length = 0;
       isSpeaking = false;
@@ -293,7 +301,7 @@
 
     const speakSequence = (items) => {
       if (!('speechSynthesis' in window)) return;
-      unlockMobileAudio(); // 소리 재생 전 모바일 오디오 깨우기
+      unlockMobileAudio();
       window.speechSynthesis.cancel();
       speechQueue.length = 0;
       isSpeaking = false;
@@ -604,6 +612,7 @@
                   key={u.id}
                   type="button"
                   onClick={() => {
+                    unlockMobileAudio();
                     setActiveUnitId(u.id);
                     speakText(u.title);
                   }}
@@ -673,6 +682,7 @@
 
           <div
             onClick={() => {
+              unlockMobileAudio();
               speakText(selectedWord.word);
               onScore(1);
             }}
@@ -696,6 +706,7 @@
                   key={w.id}
                   type="button"
                   onClick={() => {
+                    unlockMobileAudio();
                     setSelectedWord(w);
                     speakText(w.word);
                     onScore(1);
@@ -728,6 +739,7 @@
         : unit.words.filter(w => w.blend === selectedTarget);
 
       const handleCombine = (w) => {
+        unlockMobileAudio();
         speakSequence([
           { text: w.blend, rate: 0.8 },
           { text: w.word, rate: 0.85, useKoreanPhonics: false }
@@ -745,7 +757,10 @@
           <div className="flex flex-wrap gap-1 mb-3 justify-center">
             <button
               type="button"
-              onClick={() => setSelectedTarget('ALL')}
+              onClick={() => {
+                unlockMobileAudio();
+                setSelectedTarget('ALL');
+              }}
               className={`px-3 py-1 rounded-full text-xs font-bold ${
                 selectedTarget === 'ALL' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700'
               }`}
@@ -756,7 +771,10 @@
               <button
                 key={t}
                 type="button"
-                onClick={() => setSelectedTarget(t)}
+                onClick={() => {
+                  unlockMobileAudio();
+                  setSelectedTarget(t);
+                }}
                 className={`px-3 py-1 rounded-full text-xs font-bold ${
                   selectedTarget === t ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700'
                 }`}
@@ -810,6 +828,7 @@
       }, [unit, initGame]);
 
       const handleCardClick = (card) => {
+        unlockMobileAudio();
         if (flipped.length === 2 || flipped.includes(card.id) || matched.includes(card.matchId)) return;
 
         const newFlipped = [...flipped, card.id];
@@ -852,7 +871,10 @@
               <div className="text-xl font-black text-pink-600 mb-3">모든 짝을 맞췄어요!</div>
               <button
                 type="button"
-                onClick={initGame}
+                onClick={() => {
+                  unlockMobileAudio();
+                  initGame();
+                }}
                 className="bg-pink-500 text-white font-bold px-6 py-2.5 rounded-xl bubbly-btn text-sm"
               >
                 다시 하기 🔄
@@ -912,6 +934,7 @@
       }, [quizIndex, unit, setupQuiz]);
 
       const handleAnswer = (wordObj) => {
+        unlockMobileAudio();
         setSelectedChoice(wordObj.id);
         if (wordObj.id === currentWord.id) {
           setIsCorrect(true);
@@ -935,7 +958,10 @@
             <div className="text-sm font-bold text-slate-500 mb-1">뜻: "{currentWord.kor}"</div>
             <button
               type="button"
-              onClick={() => speakText(currentWord.word)}
+              onClick={() => {
+                unlockMobileAudio();
+                speakText(currentWord.word);
+              }}
               className="bg-pink-500 text-white px-4 py-1.5 rounded-full font-bold text-xs shadow-xs"
             >
               🔊 소리 듣기
@@ -991,6 +1017,7 @@
       }, [quizIndex, unit, setupQuiz]);
 
       const handleChoice = (blendVal) => {
+        unlockMobileAudio();
         if (blendVal === currentWord.blend) {
           setSolved(true);
           triggerConfetti();
