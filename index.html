@@ -226,6 +226,19 @@
     const speechQueue = [];
     let isSpeaking = false;
 
+    // 모바일 브라우저 오디오 강제 활성화 함수 (핵심 수정)
+    const unlockMobileAudio = () => {
+      if (!('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(" ");
+        utterance.volume = 0.01;
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.error("Audio unlock note:", e);
+      }
+    };
+
     const processQueue = () => {
       if (isSpeaking || speechQueue.length === 0) return;
       if (!('speechSynthesis' in window)) return;
@@ -270,6 +283,7 @@
 
     const speakText = (text, rate = 0.85) => {
       if (!('speechSynthesis' in window)) return;
+      unlockMobileAudio(); // 소리 재생 전 모바일 오디오 깨우기
       window.speechSynthesis.cancel();
       speechQueue.length = 0;
       isSpeaking = false;
@@ -279,6 +293,7 @@
 
     const speakSequence = (items) => {
       if (!('speechSynthesis' in window)) return;
+      unlockMobileAudio(); // 소리 재생 전 모바일 오디오 깨우기
       window.speechSynthesis.cancel();
       speechQueue.length = 0;
       isSpeaking = false;
@@ -316,7 +331,6 @@
       });
       const [showSettings, setShowSettings] = React.useState(false);
       const [syncStatusMsg, setSyncStatusMsg] = React.useState("");
-      const [audioUnlocked, setAudioUnlocked] = React.useState(false);
 
       const [activeUnitId, setActiveUnitId] = React.useState(1);
       const [activeMode, setActiveMode] = React.useState('listen');
@@ -400,14 +414,8 @@
         const trimmedName = inputNameVal.trim();
         if (!trimmedName) return;
 
-        // 모바일 오디오 활성화 (첫 사용자 터치 시점)
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const dummy = new SpeechSynthesisUtterance(" ");
-          dummy.volume = 0;
-          window.speechSynthesis.speak(dummy);
-        }
-        setAudioUnlocked(true);
+        // 핸드폰 터치 시점에 오디오 시스템 강제 활성화
+        unlockMobileAudio();
 
         setStudentName(trimmedName);
 
@@ -475,7 +483,7 @@
             <div className="bg-white rounded-3xl p-6 sm:p-8 border-4 border-pink-300 bubbly-card">
               <div className="text-7xl mb-3 bounce-gentle">🎈</div>
               <h1 className="text-2xl font-black text-pink-500 mb-1">파닉스 키즈 플레이랜드</h1>
-              <p className="text-xs font-extrabold text-slate-400 mb-2">핸드폰 소리 재생 최적화 버전!</p>
+              <p className="text-xs font-extrabold text-slate-400 mb-2">핸드폰 소리 최적화 버전</p>
               
               <div className="flex justify-center gap-2 mb-4">
                 <div className="inline-block bg-emerald-100 text-emerald-700 font-bold text-[11px] px-3 py-1 rounded-full">
@@ -535,8 +543,8 @@
                     onChange={(e) => setInputNameVal(e.target.value)}
                     className="w-full mt-1 p-3.5 rounded-2xl border-2 border-pink-200 bg-pink-50/50 font-bold text-slate-700 outline-none focus:border-pink-400"
                   />
-                  <div className="text-[11px] text-rose-500 mt-1 ml-1 font-bold">
-                    💡 핸드폰에서 소리가 안 나던 문제를 해결했어요! 아래 버튼을 누르면 소리가 켜집니다.
+                  <div className="text-[11px] text-pink-600 mt-1.5 ml-1 font-bold">
+                    💡 아래 버튼을 터치하면 핸드폰에서 소리가 정상적으로 켜집니다!
                   </div>
                 </div>
 
@@ -544,7 +552,7 @@
                   type="submit"
                   className="w-full bg-gradient-to-r from-pink-400 to-rose-500 text-white font-extrabold text-lg py-4 rounded-2xl bubbly-btn mt-2 hover:opacity-95 shadow-md flex items-center justify-center gap-2"
                 >
-                  <span>🔊 모험 시작하기! (소리 켜기)</span>
+                  <span>🔊 소리 켜고 모험 시작하기!</span>
                 </button>
               </form>
             </div>
@@ -636,7 +644,10 @@
       return (
         <button
           type="button"
-          onClick={() => setMode(id)}
+          onClick={() => {
+            unlockMobileAudio();
+            setMode(id);
+          }}
           className={`py-2 rounded-xl font-extrabold text-[11px] flex flex-col items-center gap-0.5 transition-all ${
             isSelected
               ? 'bg-gradient-to-b from-pink-400 to-rose-400 text-white shadow-xs'
