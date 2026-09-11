@@ -309,7 +309,6 @@
       const [totalScore, setTotalScore] = React.useState(0);
       const [isSynced, setIsSynced] = React.useState(false);
       
-      // 선생님의 구글시트 웹앱 URL 내장
       const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzGrP66w3iajVzebdvDWNTefAsJi5edrdEdDx3QeYSaGRIr55t5yiTXJV23YdBZzTP-/exec";
       
       const [sheetWebhookUrl, setSheetWebhookUrl] = React.useState(() => {
@@ -317,6 +316,7 @@
       });
       const [showSettings, setShowSettings] = React.useState(false);
       const [syncStatusMsg, setSyncStatusMsg] = React.useState("");
+      const [audioUnlocked, setAudioUnlocked] = React.useState(false);
 
       const [activeUnitId, setActiveUnitId] = React.useState(1);
       const [activeMode, setActiveMode] = React.useState('listen');
@@ -400,6 +400,15 @@
         const trimmedName = inputNameVal.trim();
         if (!trimmedName) return;
 
+        // 모바일 오디오 활성화 (첫 사용자 터치 시점)
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const dummy = new SpeechSynthesisUtterance(" ");
+          dummy.volume = 0;
+          window.speechSynthesis.speak(dummy);
+        }
+        setAudioUnlocked(true);
+
         setStudentName(trimmedName);
 
         if (window.firebaseLoaded && firebaseConfig) {
@@ -466,7 +475,7 @@
             <div className="bg-white rounded-3xl p-6 sm:p-8 border-4 border-pink-300 bubbly-card">
               <div className="text-7xl mb-3 bounce-gentle">🎈</div>
               <h1 className="text-2xl font-black text-pink-500 mb-1">파닉스 키즈 플레이랜드</h1>
-              <p className="text-xs font-extrabold text-slate-400 mb-2">교재 맞춤 단어 & 구글시트 자동 연동!</p>
+              <p className="text-xs font-extrabold text-slate-400 mb-2">핸드폰 소리 재생 최적화 버전!</p>
               
               <div className="flex justify-center gap-2 mb-4">
                 <div className="inline-block bg-emerald-100 text-emerald-700 font-bold text-[11px] px-3 py-1 rounded-full">
@@ -521,21 +530,21 @@
                   <input
                     type="text"
                     required
-                    placeholder="예: 김민준 (한글/영문 전체 입력 후 버튼 클릭)"
+                    placeholder="예: 김민준"
                     value={inputNameVal}
                     onChange={(e) => setInputNameVal(e.target.value)}
                     className="w-full mt-1 p-3.5 rounded-2xl border-2 border-pink-200 bg-pink-50/50 font-bold text-slate-700 outline-none focus:border-pink-400"
                   />
-                  <div className="text-[10px] text-pink-500 mt-1 ml-1 font-bold">
-                    * 이름을 완전히 적은 후 아래 버튼을 눌러주세요!
+                  <div className="text-[11px] text-rose-500 mt-1 ml-1 font-bold">
+                    💡 핸드폰에서 소리가 안 나던 문제를 해결했어요! 아래 버튼을 누르면 소리가 켜집니다.
                   </div>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-pink-400 to-rose-500 text-white font-extrabold text-lg py-4 rounded-2xl bubbly-btn mt-2 hover:opacity-95"
+                  className="w-full bg-gradient-to-r from-pink-400 to-rose-500 text-white font-extrabold text-lg py-4 rounded-2xl bubbly-btn mt-2 hover:opacity-95 shadow-md flex items-center justify-center gap-2"
                 >
-                  🚀 모험 시작하기!
+                  <span>🔊 모험 시작하기! (소리 켜기)</span>
                 </button>
               </form>
             </div>
@@ -722,63 +731,43 @@
             교재 단어 조합 연습하기 (+5점)
           </div>
 
-          <div className="flex flex-wrap gap-1 justify-center mb-3">
+          <div className="flex flex-wrap gap-1 mb-3 justify-center">
             <button
               type="button"
               onClick={() => setSelectedTarget('ALL')}
-              className={`px-2.5 py-1 rounded-xl font-black text-xs border-2 ${
-                selectedTarget === 'ALL'
-                  ? 'bg-purple-600 border-purple-700 text-white'
-                  : 'bg-white border-purple-200 text-purple-600'
+              className={`px-3 py-1 rounded-full text-xs font-bold ${
+                selectedTarget === 'ALL' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700'
               }`}
             >
-              전체 보기 ({unit.words.length}) ⭐
+              전체
             </button>
             {unit.targets.map(t => (
               <button
                 key={t}
                 type="button"
-                onClick={() => {
-                  setSelectedTarget(t);
-                  speakText(t);
-                }}
-                className={`px-2.5 py-1 rounded-xl font-black text-xs border-2 ${
-                  selectedTarget === t
-                    ? 'bg-purple-500 border-purple-600 text-white'
-                    : 'bg-white border-purple-200 text-purple-600'
+                onClick={() => setSelectedTarget(t)}
+                className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  selectedTarget === t ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700'
                 }`}
               >
-                /{t}/
+                {t}
               </button>
             ))}
           </div>
 
-          <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1 pb-4">
+          <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1">
             {filteredWords.map(w => (
               <div
                 key={w.id}
                 onClick={() => handleCombine(w)}
-                className="bg-purple-50/70 border-2 border-purple-200 p-2.5 rounded-2xl flex items-center justify-between cursor-pointer bubbly-btn hover:bg-purple-100 transition-all"
+                className="bg-purple-50/70 border-2 border-purple-200 rounded-2xl p-3 text-center cursor-pointer hover:bg-purple-100 bubbly-btn"
               >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-3xl">{w.emoji}</span>
-                  <div>
-                    <div className="font-black text-base text-slate-800">
-                      {w.isSuffix
-                        ? `${w.rest} + ${w.blend}`
-                        : `${w.blend} + ${w.rest}`}
-                    </div>
-                    <div className="text-[11px] font-bold text-slate-400">{w.kor}</div>
-                  </div>
+                <div className="text-3xl mb-1">{w.emoji}</div>
+                <div className="text-base font-black text-purple-800">
+                  <span className="text-pink-600 underline">{w.blend}</span>
+                  <span>{w.word.replace(w.blend, '')}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-purple-700 bg-purple-200/80 px-2.5 py-1 rounded-lg">
-                    {w.word}
-                  </span>
-                  <span className="bg-yellow-400 text-yellow-950 font-extrabold px-2.5 py-1 rounded-xl text-xs shadow-xs">
-                    합치기 ⚡
-                  </span>
-                </div>
+                <div className="text-[11px] text-slate-500 font-bold">{w.kor}</div>
               </div>
             ))}
           </div>
@@ -788,105 +777,96 @@
 
     function CardMatchMode({ unit, onScore }) {
       const [cards, setCards] = React.useState([]);
-      const [flippedCards, setFlippedCards] = React.useState([]);
-      const [matchedCardIds, setMatchedCardIds] = React.useState([]);
-      const [isProcessing, setIsProcessing] = React.useState(false);
+      const [flipped, setFlipped] = React.useState([]);
+      const [matched, setMatched] = React.useState([]);
+      const [isComplete, setIsComplete] = React.useState(false);
 
-      const startNewGame = () => {
+      const initGame = React.useCallback(() => {
         const shuffledWords = [...unit.words].sort(() => 0.5 - Math.random()).slice(0, 4);
-        const cardDeck = [];
-
+        const deck = [];
         shuffledWords.forEach(w => {
-          cardDeck.push({ id: `${w.id}_blend`, pairId: w.id, type: 'blend', content: w.blend, soundText: w.blend, wordObj: w });
-          cardDeck.push({ id: `${w.id}_word`, pairId: w.id, type: 'word', content: w.word, soundText: w.word, emoji: w.emoji, wordObj: w });
+          deck.push({ id: w.id + '_word', type: 'word', content: w.word, matchId: w.id });
+          deck.push({ id: w.id + '_emoji', type: 'emoji', content: w.emoji, matchId: w.id });
         });
+        setCards(deck.sort(() => 0.5 - Math.random()));
+        setFlipped([]);
+        setMatched([]);
+        setIsComplete(false);
+      }, [unit]);
 
-        setCards(cardDeck.sort(() => 0.5 - Math.random()));
-        setFlippedCards([]);
-        setMatchedCardIds([]);
-        setIsProcessing(false);
-      };
-
-      React.useEffect(() => { startNewGame(); }, [unit]);
+      React.useEffect(() => {
+        initGame();
+      }, [unit, initGame]);
 
       const handleCardClick = (card) => {
-        if (isProcessing) return;
-        if (flippedCards.some(c => c.id === card.id)) return;
-        if (matchedCardIds.includes(card.pairId)) return;
+        if (flipped.length === 2 || flipped.includes(card.id) || matched.includes(card.matchId)) return;
 
-        speakText(card.soundText);
+        const newFlipped = [...flipped, card.id];
+        setFlipped(newFlipped);
 
-        const newFlipped = [...flippedCards, card];
-        setFlippedCards(newFlipped);
+        if (card.type === 'word') {
+          speakText(card.content);
+        }
 
         if (newFlipped.length === 2) {
-          setIsProcessing(true);
-          const [card1, card2] = newFlipped;
+          const firstCard = cards.find(c => c.id === newFlipped[0]);
+          const secondCard = cards.find(c => c.id === newFlipped[1]);
 
-          if (card1.pairId === card2.pairId) {
-            setTimeout(() => {
-              setMatchedCardIds(prev => [...prev, card1.pairId]);
-              setFlippedCards([]);
-              setIsProcessing(false);
-              triggerConfetti();
-              onScore(10);
-            }, 600);
+          if (firstCard.matchId === secondCard.matchId) {
+            const newMatched = [...matched, firstCard.matchId];
+            setMatched(newMatched);
+            setFlipped([]);
+            triggerConfetti();
+            onScore(10);
+
+            if (newMatched.length === cards.length / 2) {
+              setIsComplete(true);
+              speakText("Great job! You matched all cards!");
+            }
           } else {
             setTimeout(() => {
-              setFlippedCards([]);
-              setIsProcessing(false);
-            }, 1000);
+              setFlipped([]);
+            }, 800);
           }
         }
       };
 
-      const isFinished = cards.length > 0 && matchedCardIds.length === cards.length / 2;
-
       return (
-        <div>
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-xs font-bold text-pink-500">교재 단어 짝맞추기 게임 (+10점)</span>
-            <button type="button" onClick={startNewGame} className="text-xs font-bold text-slate-400 underline">새로하기</button>
-          </div>
+        <div className="text-center">
+          <div className="text-xs font-bold text-pink-500 mb-2">단어와 그림 짝맞추기 게임 (+10점)</div>
 
-          {isFinished ? (
-            <div className="text-center py-10">
-              <div className="text-6xl mb-2 bounce-gentle">🎉</div>
-              <div className="font-black text-xl text-slate-700 mb-1">짝맞추기 성공! 완벽해요!</div>
-              <p className="text-xs font-bold text-slate-400 mb-4">+10점 저장 완료!</p>
-              <button type="button" onClick={startNewGame} className="bg-pink-400 text-white font-black px-6 py-3 rounded-2xl bubbly-btn text-sm">
-                한 판 더 하기 🚀
+          {isComplete ? (
+            <div className="py-8 bg-pink-50 rounded-2xl border-2 border-pink-200 mb-4">
+              <div className="text-5xl mb-2">🎉</div>
+              <div className="text-xl font-black text-pink-600 mb-3">모든 짝을 맞췄어요!</div>
+              <button
+                type="button"
+                onClick={initGame}
+                className="bg-pink-500 text-white font-bold px-6 py-2.5 rounded-xl bubbly-btn text-sm"
+              >
+                다시 하기 🔄
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-2 mb-4">
               {cards.map(card => {
-                const isFlipped = flippedCards.some(c => c.id === card.id) || matchedCardIds.includes(card.pairId);
-                const isMatched = matchedCardIds.includes(card.pairId);
-
+                const isFlipped = flipped.includes(card.id) || matched.includes(card.matchId);
+                const isMatched = matched.includes(card.matchId);
                 return (
-                  <div
+                  <button
                     key={card.id}
+                    type="button"
                     onClick={() => handleCardClick(card)}
-                    className={`h-24 rounded-2xl cursor-pointer flex flex-col items-center justify-center p-1 border-2 text-center transition-all ${
+                    className={`h-24 rounded-2xl border-2 text-2xl font-bold flex items-center justify-center transition-all ${
                       isMatched
-                        ? 'opacity-30 border-transparent bg-slate-100'
+                        ? 'bg-emerald-100 border-emerald-400 opacity-60'
                         : isFlipped
-                          ? 'bg-pink-100 border-pink-300 text-pink-700 font-extrabold shadow-inner'
-                          : 'bg-gradient-to-br from-amber-300 to-orange-400 border-white text-white font-black text-xl shadow-md'
+                        ? 'bg-white border-pink-400 shadow-md'
+                        : 'bg-gradient-to-b from-pink-400 to-rose-400 border-pink-500 text-white'
                     }`}
                   >
-                    {isFlipped ? (
-                      <>
-                        <div className="text-2xl">{card.type === 'word' ? card.emoji : '🔤'}</div>
-                        <div className="text-xs font-black mt-1">
-                          {card.content}
-                        </div>
-                      </>
-                    ) : (
-                      '⭐'
-                    )}
-                  </div>
+                    {isFlipped ? card.content : '❓'}
+                  </button>
                 );
               })}
             </div>
@@ -896,196 +876,157 @@
     }
 
     function SpellingQuizMode({ unit, onScore }) {
-      const [currentIndex, setCurrentIndex] = React.useState(0);
-      const [userInput, setUserInput] = React.useState([]);
-      const [scrambled, setScrambled] = React.useState([]);
+      const [quizIndex, setQuizIndex] = React.useState(0);
+      const [options, setOptions] = React.useState([]);
+      const [selectedChoice, setSelectedChoice] = React.useState(null);
       const [isCorrect, setIsCorrect] = React.useState(false);
 
-      const currentWordObj = unit.words[currentIndex];
+      const currentWord = unit.words[quizIndex % unit.words.length];
+
+      const setupQuiz = React.useCallback(() => {
+        const target = unit.words[quizIndex % unit.words.length];
+        speakText(target.word);
+        
+        const wrongWords = unit.words.filter(w => w.id !== target.id);
+        const shuffledWrong = [...wrongWords].sort(() => 0.5 - Math.random()).slice(0, 3);
+        const choices = [...shuffledWrong, target].sort(() => 0.5 - Math.random());
+        
+        setOptions(choices);
+        setSelectedChoice(null);
+        setIsCorrect(false);
+      }, [quizIndex, unit]);
 
       React.useEffect(() => {
-        if (!currentWordObj) return;
-        setUserInput([]);
-        setIsCorrect(false);
-        const letters = currentWordObj.word.split('').sort(() => 0.5 - Math.random());
-        setScrambled(letters.map((char, i) => ({ id: `${char}_${i}`, char, used: false })));
-        speakText(currentWordObj.word);
-      }, [currentIndex, unit]);
+        setupQuiz();
+      }, [quizIndex, unit, setupQuiz]);
 
-      const handleLetterClick = (item) => {
-        if (isCorrect || item.used) return;
-        setScrambled(prev => prev.map(l => l.id === item.id ? { ...l, used: true } : l));
-        const newInput = [...userInput, item];
-        setUserInput(newInput);
-        speakText(item.char, 1.1);
-
-        if (newInput.length === currentWordObj.word.length) {
-          if (newInput.map(i => i.char).join('') === currentWordObj.word) {
-            setIsCorrect(true);
-            speakText(`Great! ${currentWordObj.word}`);
-            triggerConfetti();
-            onScore(10);
-          } else {
-            setTimeout(() => {
-              setUserInput([]);
-              setScrambled(prev => prev.map(l => ({ ...l, used: false })));
-            }, 700);
-          }
+      const handleAnswer = (wordObj) => {
+        setSelectedChoice(wordObj.id);
+        if (wordObj.id === currentWord.id) {
+          setIsCorrect(true);
+          triggerConfetti();
+          speakText("Correct!");
+          onScore(10);
+          setTimeout(() => {
+            setQuizIndex(prev => prev + 1);
+          }, 1200);
+        } else {
+          speakText("Try again!");
         }
       };
 
       return (
         <div className="text-center">
-          <div className="text-xs font-bold text-emerald-600 mb-2">단어 스펠링 퀴즈 (+10점)</div>
-          <div className="text-6xl mb-1 bounce-gentle">{currentWordObj.emoji}</div>
-          <div className="text-xs font-bold text-slate-400 mb-4">"{currentWordObj.kor}"</div>
+          <div className="text-xs font-bold text-pink-500 mb-2">알맞은 스펠링 고르기 퀴즈 (+10점)</div>
 
-          <div className="flex justify-center gap-1.5 mb-6">
-            {Array.from({ length: currentWordObj.word.length }).map((_, idx) => {
-              const item = userInput[idx];
+          <div className="bg-gradient-to-b from-amber-50 to-pink-50 rounded-2xl p-6 border-2 border-pink-200 mb-4">
+            <div className="text-6xl mb-2 bounce-gentle">{currentWord.emoji}</div>
+            <div className="text-sm font-bold text-slate-500 mb-1">뜻: "{currentWord.kor}"</div>
+            <button
+              type="button"
+              onClick={() => speakText(currentWord.word)}
+              className="bg-pink-500 text-white px-4 py-1.5 rounded-full font-bold text-xs shadow-xs"
+            >
+              🔊 소리 듣기
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {options.map(opt => {
+              let btnStyle = "bg-white border-pink-200 text-slate-700 hover:border-pink-400";
+              if (selectedChoice === opt.id) {
+                btnStyle = opt.id === currentWord.id
+                  ? "bg-emerald-500 border-emerald-600 text-white"
+                  : "bg-rose-500 border-rose-600 text-white";
+              }
               return (
-                <div
-                  key={idx}
-                  className={`w-10 h-12 rounded-2xl border-2 font-black text-xl flex items-center justify-center ${
-                    item
-                      ? isCorrect
-                        ? 'bg-emerald-400 border-emerald-500 text-white shadow-xs'
-                        : 'bg-white border-emerald-300 text-slate-700'
-                      : 'bg-emerald-50 border-dashed border-emerald-200'
-                  }`}
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => handleAnswer(opt)}
+                  className={`p-3 rounded-2xl border-2 font-black text-lg transition-all bubbly-btn ${btnStyle}`}
                 >
-                  {item ? item.char : ''}
-                </div>
+                  {opt.word}
+                </button>
               );
             })}
           </div>
-
-          <div className="flex justify-center flex-wrap gap-2 mb-6">
-            {scrambled.map(item => (
-              <button
-                key={item.id}
-                type="button"
-                disabled={item.used || isCorrect}
-                onClick={() => handleLetterClick(item)}
-                className={`w-11 h-12 rounded-2xl font-black text-lg border-2 bubbly-btn ${
-                  item.used
-                    ? 'bg-slate-100 border-slate-200 text-slate-300'
-                    : 'bg-yellow-300 border-yellow-400 text-slate-800'
-                }`}
-              >
-                {item.char}
-              </button>
-            ))}
-          </div>
-
-          {isCorrect && (
-            <button
-              type="button"
-              onClick={() => setCurrentIndex(prev => (prev + 1) % unit.words.length)}
-              className="bg-emerald-400 text-white font-extrabold px-6 py-3 rounded-2xl bubbly-btn text-sm shadow-sm"
-            >
-              다음 문제 ➡️
-            </button>
-          )}
         </div>
       );
     }
 
     function MissingLetterMode({ unit, onScore }) {
-      const [currentIndex, setCurrentIndex] = React.useState(0);
-      const [options, setOptions] = React.useState([]);
-      const [isCorrect, setIsCorrect] = React.useState(false);
+      const [quizIndex, setQuizIndex] = React.useState(0);
+      const [choices, setChoices] = React.useState([]);
+      const [solved, setSolved] = React.useState(false);
 
-      const currentWordObj = unit.words[currentIndex];
+      const currentWord = unit.words[quizIndex % unit.words.length];
+
+      const setupQuiz = React.useCallback(() => {
+        const target = unit.words[quizIndex % unit.words.length];
+        speakText(target.word);
+
+        const blendPart = target.blend;
+        const otherBlends = unit.targets.filter(t => t !== blendPart);
+        const shuffledWrong = [...otherBlends].sort(() => 0.5 - Math.random()).slice(0, 2);
+        
+        const cList = [...shuffledWrong, blendPart].sort(() => 0.5 - Math.random());
+        setChoices(cList);
+        setSolved(false);
+      }, [quizIndex, unit]);
 
       React.useEffect(() => {
-        if (!currentWordObj) return;
-        setIsCorrect(false);
-        const correct = currentWordObj.blend;
-        const distractors = unit.targets.filter(t => t !== correct).sort(() => 0.5 - Math.random()).slice(0, 3);
-        setOptions([correct, ...distractors].sort(() => 0.5 - Math.random()));
-        speakText(currentWordObj.word);
-      }, [currentIndex, unit]);
+        setupQuiz();
+      }, [quizIndex, unit, setupQuiz]);
 
-      const handleSelect = (opt) => {
-        if (isCorrect) return;
-        if (opt === currentWordObj.blend) {
-          setIsCorrect(true);
-          speakSequence([
-            { text: opt, rate: 0.8 },
-            { text: currentWordObj.word, rate: 0.85, useKoreanPhonics: false }
-          ]);
+      const handleChoice = (blendVal) => {
+        if (blendVal === currentWord.blend) {
+          setSolved(true);
           triggerConfetti();
-          onScore(10);
+          speakText(currentWord.word);
+          onScore(15);
+          setTimeout(() => {
+            setQuizIndex(prev => prev + 1);
+          }, 1500);
         } else {
-          speakText(opt);
+          speakText("Oops! Try again.");
         }
       };
 
+      const restPart = currentWord.word.replace(currentWord.blend, '');
+
       return (
         <div className="text-center">
-          <div className="text-xs font-bold text-sky-600 mb-2">빈칸 채우기 퀴즈 (+10점)</div>
-          <div className="text-6xl mb-1 bounce-gentle">{currentWordObj.emoji}</div>
-          <div className="text-xs font-bold text-slate-400 mb-4">"{currentWordObj.kor}"</div>
+          <div className="text-xs font-bold text-pink-500 mb-2">빈칸 블렌드 채우기 퀴즈 (+15점)</div>
 
-          <div className="text-3xl font-black mb-6 flex items-center justify-center gap-1.5">
-            {currentWordObj.isSuffix ? (
-              <>
-                <span>{currentWordObj.rest}</span>
-                <span className={`px-3 py-1 rounded-2xl border-2 inline-block ${
-                  isCorrect ? 'bg-sky-400 border-sky-500 text-white shadow-xs' : 'bg-sky-50 border-dashed border-sky-300 text-sky-400'
-                }`}>
-                  {isCorrect ? currentWordObj.blend : '___'}
-                </span>
-              </>
-            ) : (
-              <>
-                <span className={`px-3 py-1 rounded-2xl border-2 inline-block ${
-                  isCorrect ? 'bg-sky-400 border-sky-500 text-white shadow-xs' : 'bg-sky-50 border-dashed border-sky-300 text-sky-400'
-                }`}>
-                  {isCorrect ? currentWordObj.blend : '___'}
-                </span>
-                <span>{currentWordObj.rest}</span>
-              </>
-            )}
+          <div className="bg-gradient-to-b from-sky-50 to-pink-50 rounded-2xl p-6 border-2 border-pink-200 mb-4">
+            <div className="text-6xl mb-2">{currentWord.emoji}</div>
+            <div className="text-3xl font-black text-slate-800 tracking-wider my-3 flex items-center justify-center gap-1">
+              <span className={`px-3 py-1 rounded-xl border-2 ${solved ? 'bg-emerald-200 border-emerald-400 text-emerald-800' : 'bg-white border-dashed border-pink-400 text-pink-500'}`}>
+                {solved ? currentWord.blend : '___'}
+              </span>
+              <span>{restPart}</span>
+            </div>
+            <div className="text-xs text-slate-500 font-bold">뜻: "{currentWord.kor}"</div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5 mb-6">
-            {options.map((opt, i) => (
+          <div className="grid grid-cols-3 gap-2">
+            {choices.map(c => (
               <button
-                key={i}
+                key={c}
                 type="button"
-                onClick={() => handleSelect(opt)}
-                className={`py-4 rounded-2xl font-black text-2xl border-2 bubbly-btn transition-all ${
-                  isCorrect && opt === currentWordObj.blend
-                    ? 'bg-emerald-400 border-emerald-500 text-white shadow-xs'
-                    : 'bg-white border-sky-200 text-sky-600 hover:bg-sky-50'
-                }`}
+                onClick={() => handleChoice(c)}
+                className="bg-white border-2 border-purple-200 text-purple-700 font-black text-xl p-3 rounded-2xl bubbly-btn hover:border-purple-400"
               >
-                {opt}
+                {c}
               </button>
             ))}
           </div>
-
-          {isCorrect && (
-            <button
-              type="button"
-              onClick={() => setCurrentIndex(prev => (prev + 1) % unit.words.length)}
-              className="bg-sky-400 text-white font-extrabold px-6 py-3 rounded-2xl bubbly-btn text-sm shadow-sm"
-            >
-              다음 문제 ➡️
-            </button>
-          )}
         </div>
       );
     }
 
-    try {
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(<App />);
-    } catch (err) {
-      document.getElementById('root').innerHTML = `<div style="padding: 20px; color: red; font-weight: bold; text-align: center;">로드 중 오류가 발생했습니다: ${err.message}</div>`;
-    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>
