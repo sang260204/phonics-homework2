@@ -193,126 +193,73 @@
     ];
 
     const PHONICS_SOUND_MAP = {
-      "bl": "블르", "cl": "클르", "fl": "플르", "gl": "글르", "pl": "플르", "sl": "슬르",
-      "br": "브르", "cr": "크르", "fr": "프르", "dr": "드르", "gr": "그르", "tr": "트르",
-      "nd": "느드", "ng": "응", "nk": "느크", "nt": "느트",
-      "sh": "쉬",   "ch": "치",   "wh": "후",   "th": "쓰",   "ph": "프"
+      "bl": "블", "cl": "클", "fl": "플", "gl": "글", "pl": "플", "sl": "슬",
+      "br": "브", "cr": "크", "fr": "프", "dr": "드", "gr": "그", "tr": "트",
+      "nd": "드", "ng": "응", "nk": "크", "nt": "트",
+      "sh": "쉬", "ch": "치", "wh": "후", "th": "쓰", "ph": "프"
     };
 
-    let cachedEnVoice = null;
-    let cachedKorVoice = null;
-
-    const getVoice = (lang) => {
-      if (!('speechSynthesis' in window)) return null;
-      const voices = window.speechSynthesis.getVoices();
-      if (lang === 'ko') {
-        if (cachedKorVoice) return cachedKorVoice;
-        cachedKorVoice = voices.find(v => v.lang.startsWith('ko')) || null;
-        return cachedKorVoice;
-      } else {
-        if (cachedEnVoice) return cachedEnVoice;
-        cachedEnVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en')) || voices[0];
-        return cachedEnVoice;
-      }
-    };
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        cachedEnVoice = null;
-        cachedKorVoice = null;
-      };
-    }
-
-    const speechQueue = [];
-    let isSpeaking = false;
-
+    // 모바일 브라우저 오디오 강제 활성화 함수 (사용자 터치 직후 실행)
     const unlockMobileAudio = () => {
       if (!('speechSynthesis' in window)) return;
       try {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(" ");
-        utterance.volume = 0.01;
-        window.speechSynthesis.speak(utterance);
+        const silentUtter = new SpeechSynthesisUtterance(" ");
+        silentUtter.volume = 0.01;
+        window.speechSynthesis.speak(silentUtter);
       } catch (e) {
-        console.error("Audio unlock error:", e);
-      }
-    };
-
-    const processQueue = () => {
-      if (isSpeaking || speechQueue.length === 0) return;
-      if (!('speechSynthesis' in window)) return;
-
-      const item = speechQueue.shift();
-      isSpeaking = true;
-
-      const lowerText = item.text.toLowerCase().trim();
-      const phoneticSound = PHONICS_SOUND_MAP[lowerText];
-
-      const utterance = new SpeechSynthesisUtterance();
-
-      if (phoneticSound && item.useKoreanPhonics !== false) {
-        utterance.text = phoneticSound;
-        utterance.lang = 'ko-KR';
-        const korVoice = getVoice('ko');
-        if (korVoice) utterance.voice = korVoice;
-        utterance.rate = 0.8;
-        utterance.pitch = 1.15;
-      } else {
-        utterance.text = item.text;
-        utterance.lang = 'en-US';
-        const enVoice = getVoice('en');
-        if (enVoice) utterance.voice = enVoice;
-        utterance.rate = item.rate || 0.85;
-        utterance.pitch = 1.05;
-      }
-
-      utterance.onend = () => {
-        isSpeaking = false;
-        setTimeout(processQueue, 150);
-      };
-
-      utterance.onerror = () => {
-        isSpeaking = false;
-        setTimeout(processQueue, 100);
-      };
-
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utterance);
-
-      // 모바일 브라우저 음성 재생 끊김 방지
-      if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        setTimeout(() => {
-          if (window.speechSynthesis && window.speechSynthesis.paused) {
-            window.speechSynthesis.resume();
-          }
-        }, 100);
+        console.log("Audio unlock:", e);
       }
     };
 
     const speakText = (text, rate = 0.85) => {
       if (!('speechSynthesis' in window)) return;
+      
+      // 모바일 오디오 깨우기
       unlockMobileAudio();
-      window.speechSynthesis.cancel();
-      speechQueue.length = 0;
-      isSpeaking = false;
-      speechQueue.push({ text, rate });
-      processQueue();
+
+      setTimeout(() => {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // 영어 발음 설정 (기본값 우선 적용하여 모바일에서 무반응 방지)
+        utterance.lang = 'en-US';
+        utterance.rate = rate;
+        utterance.pitch = 1.05;
+
+        // 사용 가능한 음성 중 영어 음성 자동 탐색
+        const voices = window.speechSynthesis.getVoices();
+        const enVoice = voices.find(v => v.lang === 'en-US' || v.lang.startsWith('en'));
+        if (enVoice) {
+          utterance.voice = enVoice;
+        }
+
+        window.speechSynthesis.speak(utterance);
+      }, 50);
     };
 
     const speakSequence = (items) => {
       if (!('speechSynthesis' in window)) return;
       unlockMobileAudio();
-      window.speechSynthesis.cancel();
-      speechQueue.length = 0;
-      isSpeaking = false;
-      items.forEach(item => {
-        if (typeof item === 'string') {
-          speechQueue.push({ text: item, rate: 0.85 });
-        } else {
-          speechQueue.push(item);
-        }
-      });
-      processQueue();
+
+      setTimeout(() => {
+        window.speechSynthesis.cancel();
+        
+        // 순차적으로 단어 읽기
+        items.forEach((item, index) => {
+          setTimeout(() => {
+            const utterance = new SpeechSynthesisUtterance(item.text);
+            utterance.lang = 'en-US';
+            utterance.rate = item.rate || 0.85;
+            
+            const voices = window.speechSynthesis.getVoices();
+            const enVoice = voices.find(v => v.lang === 'en-US' || v.lang.startsWith('en'));
+            if (enVoice) utterance.voice = enVoice;
+
+            window.speechSynthesis.speak(utterance);
+          }, index * 700);
+        });
+      }, 50);
     };
 
     const triggerConfetti = () => {
@@ -412,18 +359,17 @@
           setTimeout(() => setSyncStatusMsg(""), 3000);
         } catch (e) {
           console.error("Sheet sync error:", e);
-          setSyncStatusMsg("⚠️ 시트 전송 실패 (URL 확인)");
-          setTimeout(() => setSyncStatusMsg(""), 3000);
         }
       };
 
-      const handleLoginSubmit = async (e) => {
+      const handleLoginSubmit = (e) => {
         e.preventDefault();
         const trimmedName = inputNameVal.trim();
         if (!trimmedName) return;
 
-        // 핸드폰 터치 시점에 오디오 시스템 강제 활성화
+        // 핸드폰 터치 및 소리 즉시 강제 활성화
         unlockMobileAudio();
+        speakText(`Welcome, ${trimmedName}! Let's study!`);
 
         setStudentName(trimmedName);
 
@@ -434,7 +380,7 @@
             const db = getFirestore();
             if (auth.currentUser) {
               const userDocRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'profile', 'data');
-              await setDoc(userDocRef, {
+              setDoc(userDocRef, {
                 studentName: trimmedName,
                 grade,
                 totalScore,
@@ -448,7 +394,6 @@
         }
 
         sendDataToGoogleSheet(totalScore, "Login/Start");
-        speakText(`Welcome, ${trimmedName}! Let's study phonics!`);
       };
 
       const handleScoreGain = async (points, activityName = "Activity") => {
@@ -552,7 +497,7 @@
                     className="w-full mt-1 p-3.5 rounded-2xl border-2 border-pink-200 bg-pink-50/50 font-bold text-slate-700 outline-none focus:border-pink-400"
                   />
                   <div className="text-[11px] text-pink-600 mt-1.5 ml-1 font-bold">
-                    💡 아래 버튼을 터치하면 핸드폰에서 소리가 정상적으로 켜집니다!
+                    💡 아래 버튼을 누르면 핸드폰 소리가 켜집니다!
                   </div>
                 </div>
 
@@ -742,7 +687,7 @@
         unlockMobileAudio();
         speakSequence([
           { text: w.blend, rate: 0.8 },
-          { text: w.word, rate: 0.85, useKoreanPhonics: false }
+          { text: w.word, rate: 0.85 }
         ]);
         triggerConfetti();
         onScore(5);
@@ -851,7 +796,7 @@
 
             if (newMatched.length === cards.length / 2) {
               setIsComplete(true);
-              speakText("Great job! You matched all cards!");
+              speakText("Great job!");
             }
           } else {
             setTimeout(() => {
@@ -1027,7 +972,7 @@
             setQuizIndex(prev => prev + 1);
           }, 1500);
         } else {
-          speakText("Oops! Try again.");
+          speakText("Try again.");
         }
       };
 
