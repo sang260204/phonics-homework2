@@ -2,7 +2,6 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <!-- 모바일 화면 비율 고정 및 터치 최적화 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>파닉스 키즈 플레이랜드 🎈</title>
 
@@ -28,7 +27,7 @@
     * {
       font-family: 'Jua', 'Nunito', sans-serif;
       touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent; /* 모바일 터치 시 깜빡임 제거 */
+      -webkit-tap-highlight-color: transparent; 
     }
     body {
       background-color: #FFF0F5;
@@ -190,31 +189,33 @@
       "nd": "은드", "nk": "응크", "nt": "은트"
     };
 
+    /* [중요] 모바일 내장 브라우저 (카카오톡 등) 소리 강제 해제 및 버그 방지 로직 */
+    window.globalSpeechUtterance = null; // iOS 메모리 삭제 버그 방지용 글로벌 변수
     let isAudioUnlocked = false;
 
-    // 모바일 환경에서 사용자가 화면을 탭하는 순간 음성 엔진의 잠금을 풉니다.
     const unlockAudio = () => {
-      if (isAudioUnlocked || !('speechSynthesis' in window)) return;
+      if (isAudioUnlocked) return;
+      if (!('speechSynthesis' in window)) return;
       
-      // 모바일 사파리/크롬/카카오톡 등에서 강제로 오디오 권한을 얻기 위해 무음 재생
-      const dummyUtterance = new SpeechSynthesisUtterance('');
-      dummyUtterance.volume = 0; 
-      dummyUtterance.rate = 1;
-      
-      window.speechSynthesis.cancel(); // 기존 대기열 초기화
-      window.speechSynthesis.resume(); // 엔진 강제 기상
-      window.speechSynthesis.speak(dummyUtterance);
+      // 즉각적인 잠금 해제를 위해 빈 소리를 강제로 한 번 냅니다.
+      window.speechSynthesis.resume();
+      const dummy = new SpeechSynthesisUtterance('a'); // 완전 빈칸보다 'a'가 더 확실히 뚫림
+      dummy.volume = 0; // 소리는 나지 않게
+      dummy.rate = 2;
+      window.globalSpeechUtterance = dummy; // 가비지 컬렉터 방지
+      window.speechSynthesis.speak(dummy);
       
       isAudioUnlocked = true;
-      
-      // 한 번 풀렸으면 리스너 제거
-      document.removeEventListener('touchstart', unlockAudio, true);
-      document.removeEventListener('click', unlockAudio, true);
+
+      // 한 번 풀렸으면 더 이상 반응하지 않도록 리스너 제거
+      const events = ['touchstart', 'touchend', 'click', 'keydown'];
+      events.forEach(evt => document.removeEventListener(evt, unlockAudio, true));
     };
 
-    // 화면 아무 곳이나 터치하면 무조건 잠금 해제 실행
-    document.addEventListener('touchstart', unlockAudio, { once: true, capture: true });
-    document.addEventListener('click', unlockAudio, { once: true, capture: true });
+    // 모바일 환경에서 가장 먼저 반응하는 모든 터치/클릭 이벤트에 잠금 해제 예약
+    ['touchstart', 'touchend', 'click', 'keydown'].forEach(evt => {
+      document.addEventListener(evt, unlockAudio, { once: true, capture: true });
+    });
 
     const getVoice = (lang) => {
       if (!('speechSynthesis' in window)) return null;
@@ -223,11 +224,11 @@
       return voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en')) || voices[0];
     };
 
-    // setTimeout 같은 딜레이를 모두 제거하여 터치 즉시 발사되도록 만든 함수
+    // 지연 시간(setTimeout)을 100% 제거하고 즉각 반응하도록 만든 소리 함수
     const speakText = (text, rate = 0.85, useKoreanPhonics = false) => {
       if (!('speechSynthesis' in window)) return;
       
-      // 즉각적인 재생을 위해 엔진을 깨우고 기존 음성을 바로 취소합니다 (모바일 필수)
+      // 내장 브라우저에서는 말하기 직전에 반드시 엔진을 깨우고 기존 큐를 비워야 합니다.
       window.speechSynthesis.resume();
       window.speechSynthesis.cancel();
 
@@ -252,27 +253,33 @@
         utterance.pitch = 1.05;
       }
 
-      // 지연 없이 바로 소리 출력
+      // iOS 사파리 버그(말하다 끊김)를 방지하기 위해 윈도우 객체에 담아둡니다.
+      window.globalSpeechUtterance = utterance;
+
+      // 즉시 발사
       window.speechSynthesis.speak(utterance);
     };
 
-    // 선생님의 구글 시트 웹앱 URL 고정
+    /* [중요] 선생님의 구글 시트 웹앱 주소를 아예 고정 박제했습니다. */
     const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxnJs1X538aiBOauF35oVnfniGcSeHlhtGqG5bkbEC6OG6K2Rki4eET-gcikmqeVu71/exec";
 
     const sendScoreToSheet = (group, name, score, activityName) => {
       if (!name) return;
       
+      // 점수가 undefined로 넘어가는 오류를 막기 위해 숫자로 강력 변환
+      const finalScore = (score !== undefined && score !== null) ? Number(score) : 0;
+      
       const payload = {
         timestamp: new Date().toLocaleString(),
-        group: group,
+        group: group || "미지정",
         name: name,
-        score: Number(score), // 점수를 반드시 숫자로 전달
-        activity: activityName
+        score: finalScore, 
+        activity: activityName || "학습 완료"
       };
 
       fetch(GOOGLE_SHEET_URL, {
         method: 'POST',
-        mode: 'no-cors', // CORS 보안 에러 방지
+        mode: 'no-cors', // 카카오톡 등 브라우저 간 충돌 방지
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload)
       }).catch(err => console.error("시트 전송 에러:", err));
@@ -290,7 +297,7 @@
       
       const [activeUnitId, setActiveUnitId] = React.useState(1);
       const [activeMode, setActiveMode] = React.useState('listen');
-      const [nameError, setNameError] = React.useState(false); // 이름 미입력 에러 표시용
+      const [nameError, setNameError] = React.useState(false);
 
       const currentUnit = UNITS_DATA.find(u => u.id === activeUnitId) || UNITS_DATA[0];
 
@@ -298,19 +305,18 @@
         e.preventDefault();
         const trimmedName = inputNameVal.trim();
         
-        // 이름을 입력하지 않았거나 스페이스바만 친 경우 차단
         if (trimmedName.length === 0) {
           setNameError(true);
           return;
         }
 
-        // 폼 제출 시 오디오 잠금을 확실하게 해제
+        // 로그인 클릭 시 오디오 엔진 잠금 완벽 해제
         unlockAudio(); 
 
         setNameError(false);
         setStudentName(trimmedName);
         
-        // 로그인 완료 즉시 0점 시트로 전송
+        // 로그인 완료 즉시 0점 구글 시트로 전송
         sendScoreToSheet(grade, trimmedName, 0, "Login/Start");
         speakText(`Welcome, ${trimmedName}!`);
       };
@@ -318,11 +324,11 @@
       const handleScoreGain = (points, activityName) => {
         const updatedScore = totalScore + points;
         setTotalScore(updatedScore);
-        // 점수 획득 시 구글 시트로 업데이트 전송
+        // 점수 획득 시 구글 시트로 즉시 전송
         sendScoreToSheet(grade, studentName, updatedScore, activityName);
       };
 
-      // 1. 로그인 화면 (불필요한 버튼들 모두 제거)
+      // 1. 로그인 화면 (불필요한 공유, 설정 버튼 싹 제거)
       if (!studentName) {
         return (
           <div className="max-w-md mx-auto px-4 pt-8 text-center" onTouchStart={unlockAudio} onClick={unlockAudio}>
@@ -388,7 +394,7 @@
               <div>
                 <div className="text-[11px] font-bold text-pink-500 flex items-center gap-1">
                   <span>{grade}</span>
-                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">🟢 자동저장</span>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">🟢 실시간 전송중</span>
                 </div>
                 <div className="text-base font-black text-slate-800 leading-none">{studentName}</div>
               </div>
@@ -399,7 +405,7 @@
                 <span className="text-base">⭐</span>
                 <span className="font-black text-amber-700 text-sm">{totalScore}점</span>
               </div>
-              {/* 공유/설정 버튼 삭제, 로그아웃 버튼만 유지 */}
+              {/* 로그아웃 버튼만 남김 */}
               <button
                 type="button"
                 onClick={() => { setStudentName(""); setTotalScore(0); }}
@@ -524,7 +530,7 @@
       const filteredWords = selectedTarget === 'ALL' ? unit.words : unit.words.filter(w => w.blend === selectedTarget);
 
       const handleCombine = (w) => {
-        speakText(w.word);
+        speakText(w.word); // 버그 방지를 위해 단일 단어로 심플하게 발사
         triggerConfetti();
         onScore(5);
       };
