@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <!-- 모바일 화면 비율 고정 및 터치 최적화 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>파닉스 키즈 플레이랜드 🎈</title>
 
@@ -18,7 +19,7 @@
   <!-- Canvas Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <!-- Google Fonts: Jua & Nunito -->
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
@@ -27,6 +28,7 @@
     * {
       font-family: 'Jua', 'Nunito', sans-serif;
       touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent; /* 모바일 터치 시 깜빡임 제거 */
     }
     body {
       background-color: #FFF0F5;
@@ -53,17 +55,9 @@
       0%, 100% { transform: translateY(0) scale(1); }
       50% { transform: translateY(-10px) scale(1.04); }
     }
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #FCE7F3;
-      border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #F472B6;
-      border-radius: 10px;
-    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #FCE7F3; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #F472B6; border-radius: 10px; }
   </style>
 </head>
 <body class="min-h-screen text-slate-700 pb-16">
@@ -198,20 +192,27 @@
 
     let isAudioUnlocked = false;
 
-    // 핸드폰에서 화면을 터치하는 순간, 몰래 무음(Volume 0)으로 재생시켜 오디오 잠금을 풉니다.
+    // 모바일 환경에서 사용자가 화면을 탭하는 순간 음성 엔진의 잠금을 풉니다.
     const unlockAudio = () => {
       if (isAudioUnlocked || !('speechSynthesis' in window)) return;
-      const dummy = new SpeechSynthesisUtterance('');
-      dummy.volume = 0; 
-      window.speechSynthesis.speak(dummy);
+      
+      // 모바일 사파리/크롬/카카오톡 등에서 강제로 오디오 권한을 얻기 위해 무음 재생
+      const dummyUtterance = new SpeechSynthesisUtterance('');
+      dummyUtterance.volume = 0; 
+      dummyUtterance.rate = 1;
+      
+      window.speechSynthesis.cancel(); // 기존 대기열 초기화
+      window.speechSynthesis.resume(); // 엔진 강제 기상
+      window.speechSynthesis.speak(dummyUtterance);
+      
       isAudioUnlocked = true;
       
-      // 한 번 풀렸으면 이벤트 리스너 제거
-      document.removeEventListener('touchstart', unlockAudio);
-      document.removeEventListener('click', unlockAudio);
+      // 한 번 풀렸으면 리스너 제거
+      document.removeEventListener('touchstart', unlockAudio, true);
+      document.removeEventListener('click', unlockAudio, true);
     };
 
-    // 앱 시작 시 빈 화면을 터치해도 풀리도록 등록
+    // 화면 아무 곳이나 터치하면 무조건 잠금 해제 실행
     document.addEventListener('touchstart', unlockAudio, { once: true, capture: true });
     document.addEventListener('click', unlockAudio, { once: true, capture: true });
 
@@ -222,13 +223,13 @@
       return voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en')) || voices[0];
     };
 
-    // 지연 시간(setTimeout) 없이 즉시 실행하도록 만든 소리 발사 함수
+    // setTimeout 같은 딜레이를 모두 제거하여 터치 즉시 발사되도록 만든 함수
     const speakText = (text, rate = 0.85, useKoreanPhonics = false) => {
       if (!('speechSynthesis' in window)) return;
       
-      // 모바일 버그 방지: 기존 큐 강제 취소하고 엔진 깨우기
-      window.speechSynthesis.cancel();
+      // 즉각적인 재생을 위해 엔진을 깨우고 기존 음성을 바로 취소합니다 (모바일 필수)
       window.speechSynthesis.resume();
+      window.speechSynthesis.cancel();
 
       const lowerText = text.toLowerCase().trim();
       const phoneticSound = PHONICS_SOUND_MAP[lowerText];
@@ -251,11 +252,11 @@
         utterance.pitch = 1.05;
       }
 
-      // 모바일 차단을 막기 위해 지연 없이 즉시 재생!
+      // 지연 없이 바로 소리 출력
       window.speechSynthesis.speak(utterance);
     };
 
-    // 선생님의 구글 시트 주소를 이곳에 하드코딩(고정)했습니다!
+    // 선생님의 구글 시트 웹앱 URL 고정
     const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxnJs1X538aiBOauF35oVnfniGcSeHlhtGqG5bkbEC6OG6K2Rki4eET-gcikmqeVu71/exec";
 
     const sendScoreToSheet = (group, name, score, activityName) => {
@@ -265,18 +266,16 @@
         timestamp: new Date().toLocaleString(),
         group: group,
         name: name,
-        score: Number(score), // 점수를 숫자로 확실하게 변환
+        score: Number(score), // 점수를 반드시 숫자로 전달
         activity: activityName
       };
 
       fetch(GOOGLE_SHEET_URL, {
         method: 'POST',
-        mode: 'no-cors', // CORS 에러 방지
-        headers: {
-          'Content-Type': 'text/plain'
-        },
+        mode: 'no-cors', // CORS 보안 에러 방지
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload)
-      }).catch(err => console.error("전송 에러:", err));
+      }).catch(err => console.error("시트 전송 에러:", err));
     };
 
     const triggerConfetti = () => {
@@ -291,34 +290,39 @@
       
       const [activeUnitId, setActiveUnitId] = React.useState(1);
       const [activeMode, setActiveMode] = React.useState('listen');
+      const [nameError, setNameError] = React.useState(false); // 이름 미입력 에러 표시용
 
       const currentUnit = UNITS_DATA.find(u => u.id === activeUnitId) || UNITS_DATA[0];
 
       const handleLoginSubmit = (e) => {
         e.preventDefault();
         const trimmedName = inputNameVal.trim();
-        if (!trimmedName) return;
+        
+        // 이름을 입력하지 않았거나 스페이스바만 친 경우 차단
+        if (trimmedName.length === 0) {
+          setNameError(true);
+          return;
+        }
 
-        // 로그인 버튼 누를 때 무조건 오디오 잠금 해제 실행
+        // 폼 제출 시 오디오 잠금을 확실하게 해제
         unlockAudio(); 
 
+        setNameError(false);
         setStudentName(trimmedName);
         
-        // 로그인 완료 즉시 구글 시트로 0점 기록 전송
+        // 로그인 완료 즉시 0점 시트로 전송
         sendScoreToSheet(grade, trimmedName, 0, "Login/Start");
-
         speakText(`Welcome, ${trimmedName}!`);
       };
 
       const handleScoreGain = (points, activityName) => {
         const updatedScore = totalScore + points;
         setTotalScore(updatedScore);
-        
-        // 점수를 얻을 때마다 구글 시트로 자동 전송
+        // 점수 획득 시 구글 시트로 업데이트 전송
         sendScoreToSheet(grade, studentName, updatedScore, activityName);
       };
 
-      // 로그인 화면 (부모님들이 이름만 칠 수 있도록 심플하게 만듦)
+      // 1. 로그인 화면 (불필요한 버튼들 모두 제거)
       if (!studentName) {
         return (
           <div className="max-w-md mx-auto px-4 pt-8 text-center" onTouchStart={unlockAudio} onClick={unlockAudio}>
@@ -346,12 +350,21 @@
                   <label className="text-xs font-bold text-slate-500 ml-1">어린이 이름</label>
                   <input
                     type="text"
-                    required
                     placeholder="예: 김민준"
                     value={inputNameVal}
-                    onChange={(e) => setInputNameVal(e.target.value)}
-                    className="w-full mt-1 p-3.5 rounded-2xl border-2 border-pink-200 bg-pink-50 font-bold text-slate-700 outline-none focus:border-pink-400"
+                    onChange={(e) => {
+                      setInputNameVal(e.target.value);
+                      setNameError(false);
+                    }}
+                    className={`w-full mt-1 p-3.5 rounded-2xl border-2 bg-pink-50 font-bold text-slate-700 outline-none transition-colors ${
+                      nameError ? 'border-red-400 focus:border-red-500' : 'border-pink-200 focus:border-pink-400'
+                    }`}
                   />
+                  {nameError && (
+                    <div className="text-xs text-red-500 font-bold mt-1.5 ml-1">
+                      ⚠️ 이름을 꼭 입력해주세요!
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -366,6 +379,7 @@
         );
       }
 
+      // 2. 메인 학습 화면
       return (
         <div className="max-w-md mx-auto px-3 pt-3">
           <header className="bg-white rounded-2xl p-3 mb-3 border-2 border-pink-200 flex items-center justify-between shadow-sm">
@@ -385,11 +399,12 @@
                 <span className="text-base">⭐</span>
                 <span className="font-black text-amber-700 text-sm">{totalScore}점</span>
               </div>
+              {/* 공유/설정 버튼 삭제, 로그아웃 버튼만 유지 */}
               <button
                 type="button"
                 onClick={() => { setStudentName(""); setTotalScore(0); }}
                 className="p-2 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 text-xs font-bold"
-                title="로그아웃"
+                title="처음으로"
               >
                 👤
               </button>
@@ -455,7 +470,6 @@
 
     function ListenRepeatMode({ unit, onScore }) {
       const [selectedWord, setSelectedWord] = React.useState(unit.words[0]);
-
       React.useEffect(() => { setSelectedWord(unit.words[0]); }, [unit]);
 
       return (
@@ -510,7 +524,6 @@
       const filteredWords = selectedTarget === 'ALL' ? unit.words : unit.words.filter(w => w.blend === selectedTarget);
 
       const handleCombine = (w) => {
-        // 조합은 단어를 통째로 한 번 읽어줍니다.
         speakText(w.word);
         triggerConfetti();
         onScore(5);
